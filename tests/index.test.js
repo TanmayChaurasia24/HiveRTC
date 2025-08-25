@@ -139,7 +139,7 @@ describe("User metadata endpoint", () => {
         headers: {
           authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     console.log("avatarresponse is " + avatarResponse.data.avatarId);
 
@@ -156,7 +156,7 @@ describe("User metadata endpoint", () => {
         headers: {
           authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     expect(response.status).toBe(400);
@@ -172,7 +172,7 @@ describe("User metadata endpoint", () => {
         headers: {
           authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -225,7 +225,7 @@ describe("User avatar information", () => {
         headers: {
           authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     avatarId = avatarResponse.data.avatarId;
@@ -234,7 +234,7 @@ describe("User avatar information", () => {
   test("Get back avatar information for a user", async () => {
     console.log("asking for user with id " + userId);
     const response = await axios.get(
-      `${BACKEND_URL}/api/v1/user/metadata/bulk?ids=[${userId}]`
+      `${BACKEND_URL}/api/v1/user/metadata/bulk?ids=[${userId}]`,
     );
     console.log("response was " + userId);
     console.log(JSON.stringify(response.data));
@@ -284,7 +284,7 @@ describe("Space information", () => {
         username: username + "-user",
         password,
         type: "user",
-      }
+      },
     );
 
     userId = userSignupResponse.data.userId;
@@ -294,7 +294,7 @@ describe("Space information", () => {
       {
         username: username + "-user",
         password,
-      }
+      },
     );
 
     userToken = userSigninResponse.data.token;
@@ -312,7 +312,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const element2Response = await axios.post(
@@ -328,7 +328,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     element1Id = element1Response.data.id;
     element2Id = element2Response.data.id;
@@ -362,7 +362,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     console.log("mapResponse.status");
     console.log(mapResponse.data.id);
@@ -382,7 +382,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
     expect(response.status).toBe(200);
     expect(response.data.spaceId).toBeDefined();
@@ -399,7 +399,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(response.data.spaceId).toBeDefined();
@@ -415,7 +415,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(response.status).toBe(400);
@@ -428,7 +428,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(response.status).toBe(400);
@@ -445,7 +445,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const deleteReponse = await axios.delete(
@@ -454,7 +454,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(deleteReponse.status).toBe(200);
@@ -471,7 +471,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const deleteReponse = await axios.delete(
@@ -480,7 +480,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     expect(deleteReponse.status).toBe(403);
@@ -506,7 +506,7 @@ describe("Space information", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     console.log("jhflksdjflksdfjlksdfj");
     console.log(spaceCreateReponse.data);
@@ -516,7 +516,7 @@ describe("Space information", () => {
       },
     });
     const filteredSpace = response.data.spaces.find(
-      (x) => x.id == spaceCreateReponse.data.spaceId
+      (x) => x.id == spaceCreateReponse.data.spaceId,
     );
     expect(response.data.spaces.length).toBe(1);
     expect(filteredSpace).toBeDefined();
@@ -558,7 +558,7 @@ describe("Arena endpoints", () => {
         username: username + "-user",
         password,
         type: "user",
-      }
+      },
     );
 
     userId = userSignupResponse.data.userId;
@@ -568,7 +568,7 @@ describe("Arena endpoints", () => {
       {
         username: username + "-user",
         password,
-      }
+      },
     );
 
     userToken = userSigninResponse.data.token;
@@ -586,7 +586,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const element2Response = await axios.post(
@@ -602,7 +602,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     element1Id = element1Response.data.id;
     element2Id = element2Response.data.id;
@@ -635,7 +635,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     mapId = mapResponse.data.id;
 
@@ -650,7 +650,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
     console.log(spaceResponse.data);
     spaceId = spaceResponse.data.spaceId;
@@ -697,7 +697,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(newResponse.data.elements.length).toBe(2);
@@ -716,7 +716,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(newResponse.status).toBe(400);
@@ -735,7 +735,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const newResponse = await axios.get(
@@ -744,7 +744,7 @@ describe("Arena endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(newResponse.data.elements.length).toBe(3);
@@ -782,7 +782,7 @@ describe("Admin Endpoints", () => {
         username: username + "-user",
         password,
         type: "user",
-      }
+      },
     );
 
     userId = userSignupResponse.data.userId;
@@ -792,7 +792,7 @@ describe("Admin Endpoints", () => {
       {
         username: username + "-user",
         password,
-      }
+      },
     );
 
     userToken = userSigninResponse.data.token;
@@ -812,7 +812,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const mapResponse = await axios.post(
@@ -827,7 +827,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const avatarResponse = await axios.post(
@@ -841,7 +841,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     const updateElementResponse = await axios.put(
@@ -854,7 +854,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     expect(elementReponse.status).toBe(403);
@@ -877,7 +877,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const mapResponse = await axios.post(
@@ -892,7 +892,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const avatarResponse = await axios.post(
@@ -906,7 +906,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     expect(elementReponse.status).toBe(200);
     expect(mapResponse.status).toBe(200);
@@ -927,7 +927,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const updateElementResponse = await axios.put(
@@ -940,7 +940,7 @@ describe("Admin Endpoints", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     expect(updateElementResponse.status).toBe(200);
@@ -990,7 +990,7 @@ describe("Websocket tests", () => {
         username,
         password,
         type: "admin",
-      }
+      },
     );
 
     const adminSigninResponse = await axios.post(
@@ -998,7 +998,7 @@ describe("Websocket tests", () => {
       {
         username,
         password,
-      }
+      },
     );
 
     adminUserId = adminSignupResponse.data.userId;
@@ -1012,14 +1012,14 @@ describe("Websocket tests", () => {
         username: username + `-user`,
         password,
         type: "user",
-      }
+      },
     );
     const userSigninResponse = await axios.post(
       `${BACKEND_URL}/api/v1/signin`,
       {
         username: username + `-user`,
         password,
-      }
+      },
     );
     userId = userSignupResponse.data.userId;
     userToken = userSigninResponse.data.token;
@@ -1037,7 +1037,7 @@ describe("Websocket tests", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
 
     const element2Response = await axios.post(
@@ -1053,7 +1053,7 @@ describe("Websocket tests", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     element1Id = element1Response.data.id;
     element2Id = element2Response.data.id;
@@ -1086,7 +1086,7 @@ describe("Websocket tests", () => {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
-      }
+      },
     );
     mapId = mapResponse.data.id;
 
@@ -1101,7 +1101,7 @@ describe("Websocket tests", () => {
         headers: {
           authorization: `Bearer ${userToken}`,
         },
-      }
+      },
     );
 
     console.log(spaceResponse.status);
@@ -1146,7 +1146,7 @@ describe("Websocket tests", () => {
           spaceId: spaceId,
           token: adminToken,
         },
-      })
+      }),
     );
     console.log("insixce first test1");
     const message1 = await waitForAndPopLatestMessage(ws1Messages);
@@ -1158,7 +1158,7 @@ describe("Websocket tests", () => {
           spaceId: spaceId,
           token: userToken,
         },
-      })
+      }),
     );
     console.log("insixce first test3");
 
@@ -1189,7 +1189,7 @@ describe("Websocket tests", () => {
           x: 1000000,
           y: 10000,
         },
-      })
+      }),
     );
 
     const message = await waitForAndPopLatestMessage(ws1Messages);
@@ -1206,7 +1206,7 @@ describe("Websocket tests", () => {
           x: adminX + 2,
           y: adminY,
         },
-      })
+      }),
     );
 
     const message = await waitForAndPopLatestMessage(ws1Messages);
@@ -1224,7 +1224,7 @@ describe("Websocket tests", () => {
           y: adminY,
           userId: adminId,
         },
-      })
+      }),
     );
 
     const message = await waitForAndPopLatestMessage(ws2Messages);
