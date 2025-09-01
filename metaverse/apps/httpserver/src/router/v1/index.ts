@@ -23,7 +23,7 @@ import {
   UpdateElement,
 } from "../../controllers/v1/admin.controller.js";
 
-export const v1Router = Router();
+export const v1Router: Router = Router();
 
 // auth controllers route...
 v1Router.post("/sign-up", Signup);
