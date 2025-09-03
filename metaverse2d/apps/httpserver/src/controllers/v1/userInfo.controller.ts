@@ -1,13 +1,5 @@
-export const UpdateMetadata = () => {
+export const UpdateMetadata = () => {};
 
-}
+export const AvailableAvatars = () => {};
 
-
-export const AvailableAvatars = () => {
-
-}
-
-
-export const OtherUserMetadata = () => {
-    
-}
+export const OtherUserMetadata = () => {};
