@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config.js";
+import { JWT_ACCESS_SECRET } from "../config.js";
 import type { NextFunction, Request, Response } from "express";
 
 export const adminMiddleware = (
@@ -16,7 +16,7 @@ export const adminMiddleware = (
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as {
       role: string;
       userId: string;
     };

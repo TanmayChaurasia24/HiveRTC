@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { Signin, Signup } from "../../controllers/v1/auth.controller.js";
+import {
+  refreshToken,
+  Signin,
+  Signup,
+} from "../../controllers/v1/auth.controller.js";
 import {
   AvailableAvatars,
   OtherUserMetadata,
@@ -28,8 +32,9 @@ import { loginLimiter, signupLimiter } from "../../middleware/ratelimiter.js";
 export const v1Router: Router = Router();
 
 // auth controllers route...
-v1Router.post("/sign-up",signupLimiter, Signup);
-v1Router.post("/sign-in",loginLimiter, Signin);
+v1Router.post("/sign-up", signupLimiter, Signup);
+v1Router.post("/sign-in", loginLimiter, Signin);
+v1Router.post("/refresh", refreshToken);
 
 // user info controllers route...
 v1Router.post("/user/metadata", UpdateMetadata);

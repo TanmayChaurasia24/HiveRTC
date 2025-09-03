@@ -2,17 +2,9 @@ import bcrypt from "bcryptjs";
 import { SigninSchema, SignupSchema } from "../../types/index.js";
 import type { Request, Response } from "express";
 import client from "@metaverse2d/database";
-import { JWT_SECRET } from "../../config.js";
+import { ACCESS_TTL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, LOCKOUT_DURATION_MS, LOCKOUT_WINDOW_MS, MAX_FAILED_ATTEMPTS, REFRESH_TTL } from "../../config.js";
 import jwt from "jsonwebtoken";
 
-const JWT_ACCESS_SECRET = "saojhfof2803hfassl";
-const JWT_REFRESH_SECRET = "f3420hfjsnasnljfndd";
-
-const ACCESS_TTL = "15m"; // short-lived access token
-const REFRESH_TTL = "7d"; // long-lived refresh token (in HttpOnly cookie)
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 min rolling window
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 min lock
 
 function signAccessToken(payload: object) {
   return jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: ACCESS_TTL });
@@ -130,9 +122,40 @@ export const Signin = async (req: Request, res: Response) => {
 
     setRefreshCookie(res, refreshToken);
 
-    return res.status(200).json({ accessToken, expiresIn: ACCESS_TTL });
+    return res.status(201).json({ accessToken, expiresIn: ACCESS_TTL });
   } catch (e: any) {
     console.error("Signin error:", e);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+  const token = req.cookies?.refreshToken as string | undefined;
+  if (!token) return res.status(401).json({ message: "No refresh token" });
+
+  try {
+    const payload = jwt.verify(token, JWT_REFRESH_SECRET) as {
+      userId: string;
+      tokenVersion: number;
+    };
+    const user = await client.user.findUnique({
+      where: { id: payload.userId },
+    });
+    if (!user || user.tokenVersion !== payload.tokenVersion) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const newAccess = signAccessToken({ userId: user.id, role: user.role });
+    const newRefresh = signRefreshToken({
+      userId: user.id,
+      tokenVersion: user.tokenVersion,
+    });
+
+    setRefreshCookie(res, newRefresh);
+    return res
+      .status(200)
+      .json({ accessToken: newAccess, expiresIn: ACCESS_TTL });
+  } catch {
+    return res.status(401).json({ message: "Invalid refresh token" });
   }
 };

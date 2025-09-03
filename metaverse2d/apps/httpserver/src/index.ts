@@ -3,13 +3,16 @@ import cors from "cors";
 import { v1Router } from "./router/v1/index.js";
 import helmet from "helmet";
 
+
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.use("api/v1", v1Router);
 

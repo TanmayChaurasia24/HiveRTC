@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
-import { JWT_SECRET } from "../config.js";
+import { JWT_ACCESS_SECRET } from "../config.js";
 
 export const authenticateUser = async (
   req: Request,
@@ -13,7 +13,7 @@ export const authenticateUser = async (
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as {
       role: string;
       userId: string;
     };
