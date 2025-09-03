@@ -22,12 +22,14 @@ import {
   CreateMap,
   UpdateElement,
 } from "../../controllers/v1/admin.controller.js";
+import { authenticateUser } from "../../middleware/user.js";
+import { loginLimiter, signupLimiter } from "../../middleware/ratelimiter.js";
 
 export const v1Router: Router = Router();
 
 // auth controllers route...
-v1Router.post("/sign-up", Signup);
-v1Router.post("/sign-in", Signin);
+v1Router.post("/sign-up",signupLimiter, Signup);
+v1Router.post("/sign-in",loginLimiter, Signin);
 
 // user info controllers route...
 v1Router.post("/user/metadata", UpdateMetadata);
