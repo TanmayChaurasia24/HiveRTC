@@ -46,7 +46,7 @@ describe("Authentication", () => {
     console.log("backend url is " + BACKEND_URL);
     
 
-    const response = await axios.post(`${BACKEND_URL}/api/v1/sign-up`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
       password,
       type: "admin",
@@ -54,7 +54,7 @@ describe("Authentication", () => {
 
     expect(response.status).toBe(201);
 
-    const updatedResponse = await axios.post(`${BACKEND_URL}/api/v1/sign-up`, {
+    const updatedResponse = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
       password,
       type: "admin",
@@ -66,7 +66,7 @@ describe("Authentication", () => {
   test("Signup request fails if the username is empty", async () => {
     const password = "123456";
 
-    const response = await axios.post(`${BACKEND_URL}/api/v1/sign-up`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       password,
     });
 
@@ -77,13 +77,13 @@ describe("Authentication", () => {
     const username = `tanmay-${Math.random()}`;
     const password = "123456";
 
-    await axios.post(`${BACKEND_URL}/api/v1/sign-up`, {
+    await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
       password,
       type: "admin",
     });
 
-    const response = await axios.post(`${BACKEND_URL}/api/v1/sign-in`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
       username,
       password,
     });
@@ -96,13 +96,13 @@ describe("Authentication", () => {
     const username = `tanmay-${Math.random()}`;
     const password = "123456";
 
-    await axios.post(`${BACKEND_URL}/api/v1/sign-up`, {
+    await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
       password,
       type: "admin",
     });
 
-    const response = await axios.post(`${BACKEND_URL}/api/v1/sign-in`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
       username: "WrongUsername",
       password,
     });

@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.use("api/v1", v1Router);
+app.use("/api/v1", v1Router);
 
 app.listen(3000, () => {
   console.log("Server is running on port 3000");
