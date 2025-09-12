@@ -37,8 +37,8 @@ v1Router.post("/signin", loginLimiter, Signin);
 v1Router.post("/refresh", refreshToken);
 
 // user info controllers route...
-v1Router.post("/user/metadata", UpdateMetadata);
-v1Router.get("/user/avatars", AvailableAvatars);
+v1Router.post("/user/metadata",authenticateUser,UpdateMetadata);
+v1Router.get("/user/avatars",authenticateUser, AvailableAvatars);
 v1Router.get("/user/metadata/bulk", OtherUserMetadata);
 
 // space controllers route...
