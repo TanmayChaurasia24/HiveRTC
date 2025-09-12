@@ -24,12 +24,25 @@ export const UpdateMetadata = async (req: Request, res: Response) => {
   });
 };
 
-export const AvailableAvatars = () => {};
+export const AvailableAvatars = async (req: Request, res: Response) => {
+  try {
+    const avatars = await client.avatar.findMany();
+    res.json({
+      avatars: avatars.map((x) => ({
+        id: x.id,
+        imageUrl: x.imageUrl,
+        name: x.name,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 export const OtherUserMetadata = async (req: Request, res: Response) => {
   const userIdString = (req.query.ids ?? "[]") as string;
   const userIds = userIdString.slice(1, userIdString?.length - 1).split(",");
-  
+
   console.log(userIds);
 
   const metadata = await client.user.findMany({

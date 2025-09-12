@@ -18,7 +18,6 @@ import {
   AddElementToArena,
   DeleteElementFromArena,
   GetSpace,
-  SeeAllElementsInArena,
 } from "../../controllers/v1/arena.controller.js";
 import {
   CreateAvatar,
@@ -50,7 +49,6 @@ v1Router.get("/space/all",authenticateUser, GetMyExistingSpaces);
 v1Router.get("/space/:spaceId", GetSpace);
 v1Router.post("/space/element", AddElementToArena);
 v1Router.delete("/space/element", DeleteElementFromArena);
-v1Router.get("/elements", SeeAllElementsInArena);
 
 // admin controllers route...
 v1Router.post("/admin/element", CreateElement);
