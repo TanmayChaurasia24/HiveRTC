@@ -42,9 +42,9 @@ v1Router.get("/user/avatars",authenticateUser, AvailableAvatars);
 v1Router.get("/user/metadata/bulk", OtherUserMetadata);
 
 // space controllers route...
-v1Router.post("/space", CreateSpace);
-v1Router.delete("/space/:spaceId", DeleteSpace);
-v1Router.get("/space/all", GetMyExistingSpaces);
+v1Router.post("/space",authenticateUser, CreateSpace);
+v1Router.delete("/space/:spaceId",authenticateUser, DeleteSpace);
+v1Router.get("/space/all",authenticateUser, GetMyExistingSpaces);
 
 // arena controllers route...
 v1Router.get("/space/:spaceId", GetSpace);

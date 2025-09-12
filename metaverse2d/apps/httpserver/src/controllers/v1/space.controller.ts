@@ -13,6 +13,7 @@ export const CreateSpace = async (req: Request, res: Response) => {
   }
 
   if (!parsedData.data.mapId) {
+    // creating a empty space with no map
     const space = await client.space.create({
       data: {
         name: parsedData.data.name,
@@ -25,6 +26,7 @@ export const CreateSpace = async (req: Request, res: Response) => {
     return;
   }
 
+  // find the map that user wants to use
   const map = await client.map.findFirst({
     where: {
       id: parsedData.data.mapId,
@@ -42,6 +44,8 @@ export const CreateSpace = async (req: Request, res: Response) => {
   }
   console.log("map.mapElements.length");
   console.log(map.mapElements.length);
+
+  // create the space in that map
   let space = await client.$transaction(async () => {
     const space = await client.space.create({
       data: {
@@ -64,9 +68,63 @@ export const CreateSpace = async (req: Request, res: Response) => {
     return space;
   });
   console.log("space crated");
-  res.json({ spaceId: space.id });
+  res.status(201).json({
+    message: "Space created successfully",
+    spaceId: space.id,
+  });
 };
 
-export const GetMyExistingSpaces = () => {};
+export const GetMyExistingSpaces = async (req: Request, res: Response) => {
+  console.log("fetching all the existing spaces of user: ", req.userId);
 
-export const DeleteSpace = () => {};
+  if (!req.userId) {
+    return res.status(403).json({
+      message: "Unauthorized",
+    });
+  }
+
+  const spaces = await client.space.findMany({
+    where: {
+      creatorId: req.userId!,
+    },
+  });
+
+  res.status(201).json({
+    spaces: spaces.map((s) => ({
+      id: s.id,
+      name: s.name,
+      thumbnail: s.thumbnail,
+      dimensions: `${s.width}x${s.height}`,
+    })),
+  });
+};
+
+export const DeleteSpace = async (req: Request, res: Response) => {
+  console.log("req.params.spaceId", req.params.spaceId);
+  const space = await client.space.findUnique({
+    where: {
+      id: req.params.spaceId as string,
+    },
+    select: {
+      creatorId: true,
+    },
+  });
+
+  if (!space) {
+    res.status(400).json({ message: "Space not found" });
+    return;
+  }
+
+  if (space.creatorId !== req.userId) {
+    console.log("code should reach here");
+    res.status(403).json({ message: "Unauthorized" });
+    return;
+  }
+
+  await client.space.delete({
+    where: {
+      id: req.params.spaceId as string,
+    },
+  });
+  res.status(201).json({ message: "Space deleted" });
+};
