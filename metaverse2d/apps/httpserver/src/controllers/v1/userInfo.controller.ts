@@ -10,6 +10,16 @@ export const UpdateMetadata = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "Validation failed" });
   }
 
+  const avatar = await client.avatar.findUnique({
+    where: {
+      id: parsedData.data.avatarId,
+    },
+  });
+
+  if (!avatar) {
+    return res.status(400).json({ message: "Avatar not found" });
+  }
+
   await client.user.update({
     where: {
       id: req.userId as string,
@@ -28,7 +38,7 @@ export const AvailableAvatars = async (req: Request, res: Response) => {
   try {
     const avatars = await client.avatar.findMany();
     res.json({
-      avatars: avatars.map((x) => ({
+      avatars: avatars.map((x: any) => ({
         id: x.id,
         imageUrl: x.imageUrl,
         name: x.name,
@@ -58,9 +68,9 @@ export const OtherUserMetadata = async (req: Request, res: Response) => {
   });
 
   res.json({
-    avatars: metadata.map((m) => ({
+    avatars: metadata.map((m: any) => ({
       userId: m.id,
-      avatarId: m.avatar?.imageUrl,
+      avatarId: m.avatar?.id,
     })),
   });
 };
