@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { RoomManager } from "./RoomManager";
+import { RoomManager } from "./RoomManager.js";
 import jwt from "jsonwebtoken";
 import client from "@metaverse2d/database"
 
