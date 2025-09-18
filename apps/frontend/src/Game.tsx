@@ -14,7 +14,7 @@ const Arena = () => {
     const spaceId = urlParams.get('spaceId') || '';
     setParams({ token, spaceId });
 
-    // Initialize WebSocket
+    // Initialize WebSocket 
     wsRef.current = new WebSocket('ws://localhost:3001'); // Replace with your WS_URL
     
     wsRef.current.onopen = () => {
@@ -213,8 +213,8 @@ const Arena = () => {
         <div className="border rounded-lg overflow-hidden">
           <canvas
             ref={canvasRef}
-            width={2000}
-            height={2000}
+            width={500}
+            height={500}
             className="bg-white"
           />
         </div>
