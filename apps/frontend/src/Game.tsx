@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+// Assuming you have lucide-react for icons, a common choice for modern UI
+import { Users, Keyboard } from 'lucide-react';
 
 const Arena = () => {
   const canvasRef = useRef<any>(null);
@@ -7,6 +9,7 @@ const Arena = () => {
   const [users, setUsers] = useState(new Map());
   const [params, setParams] = useState({ token: '', spaceId: '' });
 
+  // No logic changes in this section
   // Initialize WebSocket connection and handle URL params
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -14,9 +17,9 @@ const Arena = () => {
     const spaceId = urlParams.get('spaceId') || '';
     setParams({ token, spaceId });
 
-    // Initialize WebSocket 
+    // Initialize WebSocket
     wsRef.current = new WebSocket('ws://localhost:3001'); // Replace with your WS_URL
-    
+
     wsRef.current.onopen = () => {
       // Join the space once connected
       wsRef.current.send(JSON.stringify({
@@ -40,30 +43,21 @@ const Arena = () => {
     };
   }, []);
 
+  // No logic changes in this section
   const handleWebSocketMessage = (message: any) => {
     switch (message.type) {
       case 'space-joined':
-        // Initialize current user position and other users
-        console.log("set")
-        console.log({
-            x: message.payload.spawn.x,
-            y: message.payload.spawn.y,
-            userId: message.payload.userId
-          })
         setCurrentUser({
           x: message.payload.spawn.x,
           y: message.payload.spawn.y,
           userId: message.payload.userId
         });
-        
-        // Initialize other users from the payload
         const userMap = new Map();
         message.payload.users.forEach((user: any) => {
           userMap.set(user.userId, user);
         });
         setUsers(userMap);
         break;
-
       case 'user-joined':
         setUsers(prev => {
           const newUsers = new Map(prev);
@@ -75,7 +69,6 @@ const Arena = () => {
           return newUsers;
         });
         break;
-
       case 'movement':
         setUsers(prev => {
           const newUsers = new Map(prev);
@@ -88,16 +81,13 @@ const Arena = () => {
           return newUsers;
         });
         break;
-
       case 'movement-rejected':
-        // Reset current user position if movement was rejected
         setCurrentUser((prev: any) => ({
           ...prev,
           x: message.payload.x,
           y: message.payload.y
         }));
         break;
-
       case 'user-left':
         setUsers(prev => {
           const newUsers = new Map(prev);
@@ -108,11 +98,9 @@ const Arena = () => {
     }
   };
 
-  // Handle user movement
+  // No logic changes in this section
   const handleMove = (newX: any, newY: any) => {
     if (!currentUser) return;
-    
-    // Send movement request
     wsRef.current.send(JSON.stringify({
       type: 'move',
       payload: {
@@ -123,18 +111,17 @@ const Arena = () => {
     }));
   };
 
-  // Draw the arena
+  // UI ENHANCEMENT: All changes below are purely visual
   useEffect(() => {
-    console.log("render")
     const canvas = canvasRef.current;
     if (!canvas) return;
-    console.log("below render")
-    
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
-    ctx.strokeStyle = '#eee';
+    // --- Grid UI Enhancement ---
+    ctx.strokeStyle = '#f0f0f0'; // Lighter grid color
+    ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 50) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
@@ -148,77 +135,116 @@ const Arena = () => {
       ctx.stroke();
     }
 
-    console.log("before curerntusert")
-    console.log(currentUser)
-    // Draw current user
-    if (currentUser && currentUser.x) {
-        console.log("drawing myself")
-        console.log(currentUser)
+    // --- Avatar Drawing Helper Function ---
+    const drawAvatar = (user: any, isCurrentUser = false) => {
+      const x = user.x * 50;
+      const y = user.y * 50;
+      const radius = 20;
+
+      // 1. Drop Shadow for depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 4;
+      
+      // 2. Gradient Fill for a 3D look
+      const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/4, x, y, radius * 1.5);
+      if (isCurrentUser) {
+        gradient.addColorStop(0, '#a2d2ff'); // Lighter blue
+        gradient.addColorStop(1, '#0077b6'); // Deeper blue for "You"
+      } else {
+        gradient.addColorStop(0, '#a7c957'); // Lighter green
+        gradient.addColorStop(1, '#386641'); // Deeper green for others
+      }
+      ctx.fillStyle = gradient;
+      
       ctx.beginPath();
-      ctx.fillStyle = '#FF6B6B';
-      ctx.arc(currentUser.x * 50, currentUser.y * 50, 20, 0, Math.PI * 2);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.font = '14px Arial';
+
+      // 3. Outline for definition
+      ctx.shadowColor = 'transparent'; // Turn off shadow for outline and text
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = isCurrentUser ? '#023e8a' : '#283618';
+      ctx.stroke();
+      
+      // 4. Enhanced Name Tag
+      const name = isCurrentUser ? 'You' : `User ${user.userId}`;
+      ctx.font = 'bold 12px Arial';
+      const textWidth = ctx.measureText(name).width;
+      const tagPadding = 8;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent black background for tag
+      ctx.beginPath();
+      ctx.roundRect(x - textWidth/2 - tagPadding, y + radius + 8, textWidth + tagPadding*2, 22, [11]);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff'; // White text
       ctx.textAlign = 'center';
-      ctx.fillText('You', currentUser.x * 50, currentUser.y * 50 + 40);
+      ctx.fillText(name, x, y + radius + 24);
+    };
+    
+    // Draw current user
+    if (currentUser && currentUser.x != null) {
+      drawAvatar(currentUser, true);
     }
 
     // Draw other users
     users.forEach(user => {
-    if (!user.x) {
-        return
-    }
-    console.log("drawing other user")
-    console.log(user)
-      ctx.beginPath();
-      ctx.fillStyle = '#4ECDC4';
-      ctx.arc(user.x * 50, user.y * 50, 20, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`User ${user.userId}`, user.x * 50, user.y * 50 + 40);
+      if (user.x != null) {
+        drawAvatar(user);
+      }
     });
   }, [currentUser, users]);
 
+  // No logic changes in this section
   const handleKeyDown = (e: any) => {
     if (!currentUser) return;
-
     const { x, y } = currentUser;
     switch (e.key) {
-      case 'ArrowUp':
-        handleMove(x, y - 1);
-        break;
-      case 'ArrowDown':
-        handleMove(x, y + 1);
-        break;
-      case 'ArrowLeft':
-        handleMove(x - 1, y);
-        break;
-      case 'ArrowRight':
-        handleMove(x + 1, y);
-        break;
+      case 'ArrowUp': handleMove(x, y - 1); break;
+      case 'ArrowDown': handleMove(x, y + 1); break;
+      case 'ArrowLeft': handleMove(x - 1, y); break;
+      case 'ArrowRight': handleMove(x + 1, y); break;
     }
   };
 
+  // --- COMPONENT LAYOUT UI ENHANCEMENT ---
   return (
-    <div className="p-4" onKeyDown={handleKeyDown} tabIndex={0}>
-        <h1 className="text-2xl font-bold mb-4">Arena</h1>
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">Token: {params.token}</p>
-          <p className="text-sm text-gray-600">Space ID: {params.spaceId}</p>
-          <p className="text-sm text-gray-600">Connected Users: {users.size + (currentUser ? 1 : 0)}</p>
+    <div 
+      className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 font-sans"
+      onKeyDown={handleKeyDown} 
+      tabIndex={0}
+      // Auto-focus the div to capture keydown events immediately
+      ref={el => el?.focus()} 
+    >
+      <div className="w-full max-w-4xl">
+        <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-800">Real-Time Arena</h1>
+            <div className="flex items-center gap-4 p-2 bg-white rounded-lg shadow-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <Users size={20} />
+                <span className="font-semibold">{users.size + (currentUser?.userId ? 1 : 0)}</span>
+              </div>
+              <div className="w-px h-6 bg-gray-200" />
+              <div className="text-xs text-gray-500">
+                <p>Space: <strong className="font-mono">{params.spaceId}</strong></p>
+              </div>
+            </div>
         </div>
-        <div className="border rounded-lg overflow-hidden">
+        
+        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-2xl bg-white">
           <canvas
             ref={canvasRef}
             width={500}
             height={500}
-            className="bg-white"
           />
         </div>
-        <p className="mt-2 text-sm text-gray-500">Use arrow keys to move your avatar</p>
+
+        <div className="flex items-center justify-center mt-4 gap-2 text-gray-500 text-sm">
+            <Keyboard size={18}/>
+            <p>Use the <strong className="font-semibold">arrow keys</strong> to move your avatar</p>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,68 +1,127 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Updated design tokens for gaming aesthetic with green theme */
+  --background: oklch(0.98 0.02 142); /* Light green arena background */
+  --foreground: oklch(0.2 0 0); /* Dark text */
+  --card: oklch(1 0 0); /* White cards */
+  --card-foreground: oklch(0.22 0 0); /* Dark gray card text */
+  --popover: oklch(1 0 0); /* White popovers */
+  --popover-foreground: oklch(0.22 0 0); /* Dark gray popover text */
+  --primary: oklch(0.45 0.15 142); /* Vibrant green primary */
+  --primary-foreground: oklch(1 0 0); /* White primary text */
+  --secondary: oklch(0.22 0 0); /* Dark gray secondary */
+  --secondary-foreground: oklch(1 0 0); /* White secondary text */
+  --muted: oklch(0.96 0.01 142); /* Light green muted */
+  --muted-foreground: oklch(0.45 0 0); /* Medium gray muted text */
+  --accent: oklch(0.65 0.18 120); /* Lime green accent */
+  --accent-foreground: oklch(1 0 0); /* White accent text */
+  --destructive: oklch(0.55 0.25 25); /* Red destructive */
+  --destructive-foreground: oklch(1 0 0); /* White destructive text */
+  --border: oklch(0.88 0.02 142); /* Light green border */
+  --input: oklch(1 0 0); /* White inputs */
+  --ring: oklch(0.45 0.15 142 / 0.3); /* Green focus ring */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.75rem; /* Slightly larger radius for modern look */
+  --sidebar: oklch(0.96 0.01 142);
+  --sidebar-foreground: oklch(0.22 0 0);
+  --sidebar-primary: oklch(0.45 0.15 142);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.65 0.18 120);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.88 0.02 142);
+  --sidebar-ring: oklch(0.45 0.15 142 / 0.3);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.dark {
+  /* Dark mode tokens for gaming aesthetic */
+  --background: oklch(0.08 0.02 142); /* Dark green background */
+  --foreground: oklch(0.95 0 0); /* Light text */
+  --card: oklch(0.12 0.02 142); /* Dark green cards */
+  --card-foreground: oklch(0.95 0 0); /* Light card text */
+  --popover: oklch(0.12 0.02 142); /* Dark green popovers */
+  --popover-foreground: oklch(0.95 0 0); /* Light popover text */
+  --primary: oklch(0.55 0.18 142); /* Bright green primary */
+  --primary-foreground: oklch(0.08 0.02 142); /* Dark primary text */
+  --secondary: oklch(0.18 0.02 142); /* Dark green secondary */
+  --secondary-foreground: oklch(0.95 0 0); /* Light secondary text */
+  --muted: oklch(0.15 0.02 142); /* Dark green muted */
+  --muted-foreground: oklch(0.65 0 0); /* Medium light muted text */
+  --accent: oklch(0.7 0.2 120); /* Bright lime accent */
+  --accent-foreground: oklch(0.08 0.02 142); /* Dark accent text */
+  --destructive: oklch(0.5 0.22 25); /* Dark red destructive */
+  --destructive-foreground: oklch(0.95 0 0); /* Light destructive text */
+  --border: oklch(0.18 0.02 142); /* Dark green border */
+  --input: oklch(0.15 0.02 142); /* Dark green inputs */
+  --ring: oklch(0.55 0.18 142 / 0.4); /* Bright green focus ring */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.1 0.02 142);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.55 0.18 142);
+  --sidebar-primary-foreground: oklch(0.08 0.02 142);
+  --sidebar-accent: oklch(0.7 0.2 120);
+  --sidebar-accent-foreground: oklch(0.08 0.02 142);
+  --sidebar-border: oklch(0.18 0.02 142);
+  --sidebar-ring: oklch(0.55 0.18 142 / 0.4);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+  body {
+    @apply bg-background text-foreground;
   }
 }
