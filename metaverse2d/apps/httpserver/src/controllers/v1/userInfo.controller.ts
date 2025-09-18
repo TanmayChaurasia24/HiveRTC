@@ -74,3 +74,14 @@ export const OtherUserMetadata = async (req: Request, res: Response) => {
     })),
   });
 };
+
+export const getAllAvatars = async (req: Request, res: Response) => {
+  try {
+    const avatars = await client.avatar.findMany();
+
+    res.json({ avatars });
+  } catch (e) {
+    console.error("Error fetching avatars:", e);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

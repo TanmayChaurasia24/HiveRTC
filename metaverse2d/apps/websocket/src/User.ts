@@ -3,7 +3,7 @@ import { RoomManager } from "./RoomManager.js";
 import jwt from "jsonwebtoken";
 import client from "@metaverse2d/database"
 
-const JWT_PASSWORD = "sjdn032hndsnd320dnasdn42084";
+const JWT_PASSWORD = "asnjkn32083ehjskdjNSDJNS";
 
 function getRandomString(length: number) {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

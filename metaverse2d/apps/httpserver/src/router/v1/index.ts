@@ -1,11 +1,11 @@
 import { Router } from "express";
 import {
-  refreshToken,
   Signin,
   Signup,
 } from "../../controllers/v1/auth.controller.js";
 import {
   AvailableAvatars,
+  getAllAvatars,
   OtherUserMetadata,
   UpdateMetadata,
 } from "../../controllers/v1/userInfo.controller.js";
@@ -32,14 +32,14 @@ import { adminMiddleware } from "../../middleware/admin.js";
 export const v1Router: Router = Router();
 
 // auth controllers route...
-v1Router.post("/signup", signupLimiter, Signup);
-v1Router.post("/signin", loginLimiter, Signin);
-v1Router.post("/refresh", refreshToken);
+v1Router.post("/signup", Signup);
+v1Router.post("/signin", Signin);
 
 // user info controllers route...
 v1Router.post("/user/metadata",authenticateUser,UpdateMetadata);
 v1Router.get("/user/avatars",authenticateUser, AvailableAvatars);
 v1Router.get("/user/metadata/bulk", OtherUserMetadata);
+v1Router.get("/avatars", getAllAvatars);
 
 // space controllers route...
 v1Router.post("/space",authenticateUser, CreateSpace);

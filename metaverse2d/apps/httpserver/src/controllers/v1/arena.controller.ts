@@ -7,7 +7,7 @@ export const GetSpace = async (req: Request, res: Response) => {
   try {
     const { spaceId } = req.params;
     if (!spaceId) {
-      return res.status(400).json({ message: "spaceId is required" });
+      return res.status(404).json({ message: "spaceId is required" });
     }
 
     const space: any = await client.space.findUnique({

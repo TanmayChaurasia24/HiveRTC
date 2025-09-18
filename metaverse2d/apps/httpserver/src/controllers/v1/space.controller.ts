@@ -67,7 +67,7 @@ export const CreateSpace = async (req: Request, res: Response) => {
       return space;
     });
 
-    res.status(201).json({
+    res.status(200).json({
       message: "Space created successfully",
       spaceId: space.id,
     });
@@ -117,7 +117,7 @@ export const DeleteSpace = async (req: Request, res: Response) => {
     });
 
     if (!space) {
-      return res.status(404).json({ message: "Space not found" });
+      return res.status(400).json({ message: "Space not found" });
     }
 
     if (space.creatorId !== req.userId) {
