@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"log"
+	"webRTC/internal/server"
+)
 
 func main() {
-    fmt.Println("Hello, Go on Mac!")
+	if err := server.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
