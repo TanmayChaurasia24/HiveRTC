@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"webRTC/internal/handlers"
+	w "webRTC/pkg/webrtc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -38,9 +39,20 @@ func Run() error {
 
 	// Stream routes
 	app.Get("/stream/:ssuid", handlers.Stream)
-	app.Get("/stream/:ssuid/websocket", websocket.New(handlers.StreamWS))
+	app.Get("/stream/:ssuid/websocket", websocket.New(handlers.StreamWS, websocket.Config{
+		HandshakeTimeout: 10 * time.Second,
+	}))
+	app.Get("/stream/:ssuid/chat", handlers.StreamChat)
 	app.Get("/stream/:ssuid/chat/websocket", websocket.New(handlers.StreamChatWS))
 	app.Get("/stream/:ssuid/viewer/websocket", websocket.New(handlers.StreamViewerWS))
+
+	w.Rooms = make(map[string]*w.Room)
+	w.Streams = make(map[string]*w.Stream)
+
+	go dispatchKeyFrames()
+	func dispatchKeyFrames() {
+		room.peers.dispatchKeyFrame()
+	}
 
 	// Start server
 	if err := app.Listen(":8080"); err != nil {
