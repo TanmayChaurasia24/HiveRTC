@@ -1,0 +1,10 @@
+FROM node:18-alpine AS base
+WORKDIR /app
+
+RUN npm install -g pnpm
+RUN pnpm i -g typescript
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages ./packages
+
+RUN pnpm install --frozen-lockfile

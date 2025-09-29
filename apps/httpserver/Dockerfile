@@ -1,8 +1,9 @@
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-RUN npm install
-COPY . .
-RUN npm run build    
-CMD ["npm", "run", "dev"]
+FROM BASE as build-httpserver
+
+COPY apps/httpserver ./apps/httpserver
+
+WORKDIR /app/apps/httpserver
+RUN pnpm build
+
+EXPOSE 3000
+CMD ["pnpm", "dev"]

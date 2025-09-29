@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    command: pnpm dev
+    ports:
+      - "5137:5137"
+    volumes: 
+      - ./app/frontend:/app/apps/frontend
+      - /app/node_modules
+    depends_on:
+      - httpserver
+      - websocket
+      - webRTC
+      - db
+    networks:
+      - hivertc-network
+  
+  httpserver:
+    build:
+      context: .
+      dockerfile: apps/httpserver/Dockerfile
+    command: pnpm dev
+    ports:
+      - "3000:3000"
+    volumes: 
+      - ./app/httpserver:/app/apps/httpserver
+      - /app/node_modules
+    depends_on:
+      - db
+    networks:
+      - hivertc-network
+
+  websocket:
+    build:
+      context: .
+      dockerfile: apps/websocket/Dockerfile
+    command: pnpm dev
+    ports:
+      - "8080:8080"
+    volumes: 
+      - ./app/websocket:/app/apps/websocket
+      - /app/node_modules
+    depends_on:
+      - db
+    networks:
+      - hivertc-network
+
+  webRTC:
+    build:
+      context: .
+      dockerfile: apps/webRTC/Dockerfile
+    command: go run cmd/main.go
+    ports:
+      - "8081:8080"
+    volumes: 
+      - ./app/webRTC:/app/apps/webRTC
+    depends_on:
+      - db
+    networks:
+      - hivertc-network
+
+  db:
+    image: postgres:15.3-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: metaverse2d
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - hivertc-network
+
+volumes:
+  db-data:
+networks:
+  hivertc-network:
