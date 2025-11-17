@@ -12,6 +12,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@metaverse2d/database": "workspace:*",
     "@types/ws": "^8.18.1",
     "jsonwebtoken": "^9.0.2",
     "ws": "^8.18.3"
