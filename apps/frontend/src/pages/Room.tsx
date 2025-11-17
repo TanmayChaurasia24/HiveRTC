@@ -1,8 +1,10 @@
 import React, { useEffect, useCallback, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useSocket } from "../providers/socket-provider";
 
 const RoomPage = () => {
-  const { roomId } = useParams(); // Get Room ID from URL
+  const { roomId } = useParams();
+  const { socket }: any = useSocket();
   const navigate = useNavigate();
 
   // State for streams
@@ -16,6 +18,13 @@ const RoomPage = () => {
   // Refs for video elements to assign streams directly
   const myVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+
+  const handleNewPeerJoined = (email: string) => {
+    console.log("New peer joined:", email);
+  };
+  useEffect(() => {
+    socket.on("user-joined", handleNewPeerJoined);
+  },[socket]);
 
   return (
     <div className="relative w-full h-screen bg-slate-900 overflow-hidden flex flex-col">

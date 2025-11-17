@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../providers/socket-provider";
 
@@ -8,6 +8,13 @@ const VideoLobby = () => {
 
   const navigate = useNavigate();
   const { socket }: any = useSocket();
+
+  useEffect(()=> {
+    socket.on("joined-room", (roomid: string) => {
+      console.log("joined-room", roomid);
+      navigate(`/room/${roomid}`); // Navigate to Room Page
+    });
+  },[socket])
 
   const handleJoinRoom = useCallback(
     (e: any) => {
@@ -20,12 +27,7 @@ const VideoLobby = () => {
       }
       
       socket.emit("join-room", { email, roomid });
-      console.log("Joining Room:", roomid, "as", email);
 
-      // TODO: Emit socket event here
-      // socket.emit("room:join", { email, room });
-
-      navigate(`/room/${roomid}`); // Navigate to Room Page
     },
     [email, roomid, navigate]
   );

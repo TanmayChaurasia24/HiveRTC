@@ -17,14 +17,15 @@ const io = new Server(httpserver, {
 const email_to_socket_mapping = new Map();
 
 io.on("connection", (socket) => {
-  console.log("a user connected");
+    console.log("a user connected");
 
-  socket.on("join-room", (data) => {
+    socket.on("join-room", (data) => {
     const { roomid, email } = data;
     console.log("user joined room", roomid, email);
     email_to_socket_mapping.set(email, socket.id);
     socket.join(roomid);
-    socket.broadcast.to(roomid).emit("user-connected", email);
+    socket.emit("joined-room", {roomid});
+    socket.broadcast.to(roomid).emit("user-joined", email);
   });
 });
 
