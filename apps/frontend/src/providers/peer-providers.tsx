@@ -11,7 +11,12 @@ export const PeerProvider = ({ children }: any) => {
   const peer = useMemo(() => {
     return new RTCPeerConnection({
       iceServers: [
-        { urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"] },
+        {
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:global.stun.twilio.com:3478",
+          ],
+        },
       ],
     });
   }, []);
@@ -55,7 +60,9 @@ export const PeerProvider = ({ children }: any) => {
     // Remove previously added senders for the same track kinds to avoid duplicates
     const existingSenders = peer.getSenders();
     for (const track of stream.getTracks()) {
-      const sender = existingSenders.find((s) => s.track && s.track.kind === track.kind);
+      const sender = existingSenders.find(
+        (s) => s.track && s.track.kind === track.kind
+      );
       if (!sender) {
         peer.addTrack(track, stream);
       } else {
@@ -73,26 +80,17 @@ export const PeerProvider = ({ children }: any) => {
   const createOffer = async () => {
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
+    console.log("Created offer:", offer);
     return { type: offer.type, sdp: offer.sdp };
   };
 
   // Create answer after remote offer is set. (offer should be plain {type,sdp})
-  const createAnswer = async (receivedOffer?: RTCSessionDescriptionInit) => {
-    if (receivedOffer) {
-      await peer.setRemoteDescription(receivedOffer);
-    }
+  const createAnswer = async (receivedOffer: RTCSessionDescriptionInit) => {
+    await peer.setRemoteDescription(receivedOffer);
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
+    console.log("Created answer:", answer);
     return { type: answer.type, sdp: answer.sdp };
-  };
-
-  // Add remote ICE candidate (received via signaling)
-  const addIceCandidate = async (candidate: RTCIceCandidateInit) => {
-    try {
-      await peer.addIceCandidate(candidate);
-    } catch (err) {
-      console.warn("addIceCandidate failed", err);
-    }
   };
 
   return (
@@ -102,7 +100,6 @@ export const PeerProvider = ({ children }: any) => {
         addLocalStream,
         createOffer,
         createAnswer,
-        addIceCandidate,
         remoteStream,
       }}
     >

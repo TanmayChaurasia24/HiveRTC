@@ -33,22 +33,28 @@ io.on("connection", (socket) => {
   socket.on("call-user", (data) => {
     const { email, offer } = data;
     const fromEmail = socket_to_email_mapping.get(socket.id);
+    console.log("fromt enmail is: ", fromEmail);
     const toSocketid = email_to_socket_mapping.get(email);
-    socket.to(toSocketid).emit("incoming-call", { from: fromEmail, offer });
+    socket.to(toSocketid).emit("incoming-call", { fromEmail, offer });
   });
 
   socket.on("call-accepted", (data: any) => {
-    const {email, answer} = data;
-    const toSocketid = email_to_socket_mapping.get(email);
-    socket.to(toSocketid).emit("incoming-call-accepted", answer);
-  })
+    const { to, answer } = data;
+    console.log("call accepted: ", data);
 
-  // --- NEW: ICE Candidate Signaling ---
-  socket.on("ice-candidate", ({ to, candidate }) => {
-    const socketId = email_to_socket_mapping.get(to);
-    socket.to(socketId).emit("incoming-ice-candidate", { candidate });
+    const toSocketid = email_to_socket_mapping.get(to);
+    socket.to(toSocketid).emit("incoming-call-accepted", { answer, from: to });
   });
 
+  socket.on("ice-candidate", (data) => {
+    const { to, candidate } = data;
+    const toSocketId = email_to_socket_mapping.get(to);
+    if (toSocketId) {
+      socket
+        .to(toSocketId)
+        .emit("ice-candidate", { candidate, from: socket.id });
+    }
+  });
 });
 
 httpserver.listen(4040, () => {

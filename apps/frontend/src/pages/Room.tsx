@@ -2,29 +2,35 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useSocket } from "../providers/socket-provider";
-import { usePeer } from "../providers/peer-providers"; // path adjust
-// no ReactPlayer
+import { usePeer } from "../providers/peer-providers";
 
 const RoomPage = () => {
-  const { roomId } = useParams();
+  const { roomid } = useParams();
   const { socket }: any = useSocket();
-  const { peer, addLocalStream, createOffer, createAnswer, addIceCandidate, remoteStream }: any = usePeer();
+  const { peer, addLocalStream, createOffer, createAnswer, remoteStream } =
+    usePeer();
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
+  // FIX: A queue to store candidates that arrive before the connection is ready
+  const iceCandidatesQueue = useRef<RTCIceCandidate[]>([]);
+
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [remoteEmail, setRemoteEmail] = useState<string>("");
 
-  // Get media
+  // 1. Handle Local Stream
   useEffect(() => {
     const getMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
         setMyStream(stream);
-        // show local preview
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        // add tracks to peer so future offers include media
+
+        // IMPORTANT: Add stream immediately so it's ready for offers
         addLocalStream(stream);
       } catch (err) {
         console.error("getUserMedia error", err);
@@ -33,129 +39,164 @@ const RoomPage = () => {
     getMedia();
   }, [addLocalStream]);
 
-  // Keep remote video element updated when remoteStream changes
+  // 2. Handle Remote Stream Update
   useEffect(() => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream ?? null;
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
 
-  // ICE candidate generation -> forward to server
+  // 3. Socket Signaling & ICE Handling Logic
   useEffect(() => {
-    const onIce = (ev: RTCPeerConnectionIceEvent) => {
-      if (ev.candidate) {
-        socket.emit("ice-candidate", { roomId, candidate: ev.candidate });
-      }
-    };
-    peer.addEventListener("icecandidate", onIce);
-    return () => peer.removeEventListener("icecandidate", onIce);
-  }, [peer, socket, roomId]);
-
-  // Handle negotiationneeded for the sender side (safe stable handler)
-  useEffect(() => {
-    const onNegotiationNeeded = async () => {
-      try {
-        // ensure tracks were added already
-        const offer = await createOffer();
-        // send offer to other peer(s) via server
-        socket.emit("call-user", { roomId, offer });
-      } catch (err) {
-        console.error("negotiationneeded error", err);
-      }
-    };
-
-    peer.addEventListener("negotiationneeded", onNegotiationNeeded);
-    return () => peer.removeEventListener("negotiationneeded", onNegotiationNeeded);
-  }, [peer, createOffer, socket, roomId]);
-
-  // Socket handlers
-  useEffect(() => {
-    socket.on("user-joined", async ({ email }: any) => {
-      // optional: UI update
-      console.log("user joined:", email);
-      setRemoteEmail(email);
-      // For caller -> start offer if not already created
-      // We'll rely on negotiationneeded in many cases; optionally force
-      // But ensure local tracks are added first (we already called addLocalStream)
-      try {
-        const offer = await createOffer();
-        socket.emit("call-user", { roomId, offer, to: email });
-      } catch (e) {
-        console.error("createOffer on user-joined failed", e);
-      }
-    });
-
-    socket.on("incoming-call", async (data: any) => {
-      const { from, offer } = data;
-      console.log("incoming-call", from, offer);
-      setRemoteEmail(from);
-
-      // Validate offer
-      if (!offer || !offer.type || !offer.sdp) {
-        console.error("Invalid offer", offer);
-        return;
-      }
-
-      // set remote + create answer
-      const answer = await createAnswer(offer);
-      socket.emit("call-accepted", { roomId, answer, to: from });
-    });
-
-    socket.on("incoming-call-accepted", async (data: any) => {
-      const { from, answer } = data;
-      console.log("incoming-call-accepted", from, answer);
-
-      if (!answer || !answer.type || !answer.sdp) {
-        console.error("Invalid answer", answer);
-        return;
-      }
-
-      try {
-        await peer.setRemoteDescription(answer);
-      } catch (err) {
-        console.error("setRemoteDescription failed on accepted call", err, answer);
-      }
-    });
-
-    // ICE candidate from remote
-    socket.on("ice-candidate", async (data: any) => {
-      const { candidate } = data;
-      if (candidate) {
-        try {
-          await addIceCandidate(candidate);
-        } catch (err) {
-          console.warn("failed to add remote ICE candidate", err);
+    // Helper: Process queued candidates
+    const processCandidateQueue = async () => {
+      if (peer.remoteDescription && iceCandidatesQueue.current.length > 0) {
+        console.log("Processing pending ICE candidates...");
+        while (iceCandidatesQueue.current.length > 0) {
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate) {
+            try {
+              await peer.addIceCandidate(candidate);
+            } catch (e) {
+              console.error("Error adding queued ice candidate", e);
+            }
+          }
         }
       }
-    });
+    };
 
-    // join the room on mount
-    socket.emit("join-room", { roomId });
+    // -- SOCKET LISTENERS --
+
+    const handleUserJoined = async (email: string) => {
+      console.log("user joined:", email);
+      setRemoteEmail(email);
+      const offer = await createOffer();
+      socket.emit("call-user", { offer, email });
+    };
+
+    const handleIncomingCall = async (data: any) => {
+      const { fromEmail, offer } = data;
+      console.log("incoming-call from", fromEmail);
+      setRemoteEmail(fromEmail);
+
+      // 1. Set Remote Description FIRST
+      // We manually set this here to ensure order before processing candidates
+      await peer.setRemoteDescription(new RTCSessionDescription(offer));
+
+      // 2. Process any ICE candidates that arrived while we were waiting
+      await processCandidateQueue();
+
+      // 3. Ensure Local Stream exists
+      let stream = myStream;
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
+        setMyStream(stream);
+        addLocalStream(stream);
+      }
+
+      // 4. Create Answer
+      const answer = await createAnswer(offer);
+      socket.emit("call-accepted", { roomid, answer, to: fromEmail });
+    };
+
+    const handleCallAccepted = async (data: any) => {
+      const { from, answer } = data;
+      console.log("call accepted by", from);
+
+      // 1. Set Remote Description
+      await peer.setRemoteDescription(new RTCSessionDescription(answer));
+
+      // 2. Process any ICE candidates that arrived while we were waiting
+      await processCandidateQueue();
+    };
+
+    const handleIceCandidateEvent = async (data: any) => {
+      const { candidate } = data;
+      const iceCandidate = new RTCIceCandidate(candidate);
+
+      if (peer.remoteDescription) {
+        // Connection ready? Add immediately
+        try {
+          await peer.addIceCandidate(iceCandidate);
+        } catch (e) {
+          console.error("Error adding ice candidate", e);
+        }
+      } else {
+        // Connection not ready? Queue it
+        console.warn("Remote description not set. Queueing candidate.");
+        iceCandidatesQueue.current.push(iceCandidate);
+      }
+    };
+
+    socket.on("user-joined", handleUserJoined);
+    socket.on("incoming-call", handleIncomingCall);
+    socket.on("incoming-call-accepted", handleCallAccepted);
+    socket.on("ice-candidate", handleIceCandidateEvent);
 
     return () => {
-      socket.off("user-joined");
-      socket.off("incoming-call");
-      socket.off("incoming-call-accepted");
-      socket.off("ice-candidate");
+      socket.off("user-joined", handleUserJoined);
+      socket.off("incoming-call", handleIncomingCall);
+      socket.off("incoming-call-accepted", handleCallAccepted);
+      socket.off("ice-candidate", handleIceCandidateEvent);
     };
-  }, [socket, peer, createOffer, createAnswer, addIceCandidate, roomId]);
+  }, [
+    socket,
+    peer,
+    createOffer,
+    createAnswer,
+    roomid,
+    myStream,
+    addLocalStream,
+  ]);
+
+  // 4. Emit Local ICE Candidates
+  useEffect(() => {
+    const handleIceCandidate = (event: RTCPeerConnectionIceEvent) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          candidate: event.candidate,
+          to: remoteEmail,
+          roomid,
+        });
+      }
+    };
+
+    peer.addEventListener("icecandidate", handleIceCandidate);
+    return () => {
+      peer.removeEventListener("icecandidate", handleIceCandidate);
+    };
+  }, [peer, socket, remoteEmail, roomid]);
 
   return (
     <div className="w-full h-screen bg-slate-900">
       <div className="p-4 text-white">
-        <div>Room: {roomId}</div>
-        <div>Connected to: {remoteEmail || "none"}</div>
+        <div>Room: {roomid}</div>
+        <div>Connected to: {remoteEmail || "Waiting..."}</div>
       </div>
 
       <div className="flex gap-4 p-4">
         <div>
           <h4 className="text-white">Local</h4>
-          <video ref={localVideoRef} autoPlay muted playsInline style={{ width: 320, height: 240, background: "#000" }} />
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-[320px] h-[240px] bg-black object-cover"
+          />
         </div>
 
         <div>
           <h4 className="text-white">Remote</h4>
-          <video ref={remoteVideoRef} autoPlay playsInline style={{ width: 640, height: 480, background: "#000" }} />
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="w-[640px] h-[480px] bg-black object-cover"
+          />
         </div>
       </div>
     </div>

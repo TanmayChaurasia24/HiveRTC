@@ -10,7 +10,7 @@ const VideoLobby = () => {
   const { socket }: any = useSocket();
 
   useEffect(()=> {
-    socket.on("joined-room", (roomid: string) => {
+    socket.on("joined-room", (roomid: any) => {
       console.log("joined-room", roomid);
       navigate(`/room/${roomid}`); // Navigate to Room Page
     });

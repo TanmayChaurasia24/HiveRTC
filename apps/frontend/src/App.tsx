@@ -14,7 +14,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Arena />} />
               <Route path="/lobby" element={<VideoLobby />} />
-              <Route path="/room/:roomId" element={<RoomPage />} />
+              <Route path="/room/:roomid" element={<RoomPage />} />
             </Routes>
           </BrowserRouter>
         </PeerProvider>
