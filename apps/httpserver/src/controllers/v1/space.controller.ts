@@ -55,7 +55,7 @@ export const CreateSpace = async (req: Request, res: Response) => {
 
       if (map.mapElements.length > 0) {
         await client.spaceElements.createMany({
-          data: map.mapElements.map((e) => ({
+          data: map.mapElements.map((e: any) => ({
             spaceId: space.id,
             elementId: e.elementId,
             x: e.x!,
@@ -90,7 +90,7 @@ export const GetMyExistingSpaces = async (req: Request, res: Response) => {
     });
 
     res.status(200).json({
-      spaces: spaces.map((s) => ({
+      spaces: spaces.map((s: any) => ({
         id: s.id,
         name: s.name,
         thumbnail: s.thumbnail,

@@ -1,0 +1,1 @@
+{"root":["./src/config.ts","./src/index.ts","./src/redis.ts","./src/mediasoup/peer.ts","./src/mediasoup/room.ts","./src/mediasoup/socket.ts","./src/mediasoup/worker.ts"],"version":"5.9.3"}
