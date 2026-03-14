@@ -4,6 +4,7 @@ import VideoLobby from "./pages/Video";
 import RoomPage from "./pages/Room";
 import { SocketProvider } from "./providers/socket-provider";
 import { PeerProvider } from "./providers/peer-providers";
+import Sfulobby from "./pages/sfu_client";
 
 function App() {
   return (
