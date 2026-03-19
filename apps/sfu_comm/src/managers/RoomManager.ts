@@ -1,7 +1,6 @@
 import * as mediasoup from "mediasoup";
 import { workerManager } from "./WorkerManager.js";
 
-// Use proper Mediasoup types instead of 'any' to prevent runtime crashes
 interface Peer {
   id: string;
   transports: Map<
@@ -23,17 +22,15 @@ class Room {
   addPeer(peerId: string) {
     this.peers.set(peerId, {
       id: peerId,
-      transports: new Map(), // Changed from 'transport' to 'transports'
+      transports: new Map(), 
       producers: new Map(),
       consumers: new Map(),
     });
   }
 
-  // Proper cleanup for a single peer
   removePeer(peerId: string) {
     const peer = this.peers.get(peerId);
     if (peer) {
-      // Close all transports (this automatically closes producers/consumers)
       peer.transports.forEach((t) => t.close());
     }
     this.peers.delete(peerId);
@@ -89,16 +86,14 @@ class RoomManager {
 
       if (room.peers.size === 0) {
         console.log(`Closing empty room: ${roomId}`);
-        room.router.close(); // Kills all underlying processes
+        room.router.close();
         this.rooms.delete(roomId);
-        // Important: If using Redis, notify it here that the room is gone
       }
     }
 
     this.socketToRoom.delete(socketId);
   }
 
-  // Helper to get a room by socketId instantly
   getRoomBySocketId(socketId: string): Room | undefined {
     const roomId = this.socketToRoom.get(socketId);
     return roomId ? this.rooms.get(roomId) : undefined;

@@ -37,10 +37,10 @@ import { redisService } from "./services/RedisService.js";
       await redisService.setRoomLocation(roomId, nodeIp);
     }
 
-    res.json({ serverURL: `ws://${nodeIp}:3000`, roomId });
+    res.json({ serverURL: `ws://${nodeIp}:3002`, roomId });
   });
 
-  server.listen(3000, () => {
-    console.log("Server listening on port 3000");
+  server.listen(3002, () => {
+    console.log("Server listening on port 3002");
   });
 })();

@@ -27,7 +27,6 @@ export const setupSocketHandlers = (io: Server) => {
 
           socket.join(roomId);
 
-          // PRODUCTION FIX: Get existing producers with correct typing
           const existingProducers: { producerId: string }[] = [];
           room.peers.forEach((peer) => {
             peer.producers.forEach((producer) => {
