@@ -18,8 +18,8 @@ export class User {
     public id: string;
     public userId?: string;
     private spaceId?: string;
-    private x: number;
-    private y: number;
+    public x: number;   // public so RoomManager can read position
+    public y: number;
     private ws: WebSocket;
 
     constructor(ws: WebSocket) {
@@ -27,88 +27,124 @@ export class User {
         this.x = 0;
         this.y = 0;
         this.ws = ws;
-        this.initHandlers()
+        this.initHandlers();
     }
 
     initHandlers() {
         this.ws.on("message", async (data) => {
-            console.log(data)
-            const parsedData = JSON.parse(data.toString());
-            console.log(parsedData)
-            console.log("parsedData")
+            let parsedData: any;
+            try {
+                parsedData = JSON.parse(data.toString());
+            } catch {
+                return;
+            }
+
             switch (parsedData.type) {
-                case "join":
-                    console.log("jouin receiverdfd")
-                    const spaceId = parsedData.payload.spaceId;
-                    const token = parsedData.payload.token;
-                    const userId = (jwt.verify(token, JWT_PASSWORD) as any).userId;
-                    if (!userId) {
-                        this.ws.close()
-                        return
-                    }
-                    console.log("jouin receiverdfd 2")
-                    this.userId = userId
-                    const space = await client.space.findFirst({
-                        where: {
-                            id: spaceId
-                        }
-                    })
-                    console.log("jouin receiverdfd 3")
-                    if (!space) {
-                        this.ws.close()
+                case "join": {
+                    const spaceId = parsedData.payload?.spaceId;
+                    const token = parsedData.payload?.token;
+
+                    if (!spaceId || !token) {
+                        this.ws.close();
                         return;
                     }
-                    console.log("jouin receiverdfd 4")
-                    this.spaceId = spaceId
+
+                    let userId: string;
+                    try {
+                        userId = (jwt.verify(token, JWT_PASSWORD) as any).userId;
+                    } catch {
+                        console.error("JWT verification failed");
+                        this.ws.close();
+                        return;
+                    }
+
+                    if (!userId) {
+                        this.ws.close();
+                        return;
+                    }
+
+                    this.userId = userId;
+
+                    const space = await client.space.findFirst({ where: { id: spaceId } });
+                    if (!space) {
+                        this.ws.close();
+                        return;
+                    }
+
+                    this.spaceId = spaceId;
                     RoomManager.getInstance().addUser(spaceId, this);
-                    this.x = Math.floor(Math.random() * space?.width);
-                    this.y = Math.floor(Math.random() * space?.height);
+
+                    // Spawn at a random position within the space
+                    this.x = Math.floor(Math.random() * space.width);
+                    this.y = Math.floor(Math.random() * space.height);
+
+                    // FIX: send existing users WITH their userId AND position
+                    const existingUsers = RoomManager.getInstance().rooms
+                        .get(spaceId)
+                        ?.filter(u => u.id !== this.id)
+                        ?.map(u => ({
+                            userId: u.userId,
+                            x: u.x,
+                            y: u.y,
+                        })) ?? [];
+
                     this.send({
                         type: "space-joined",
                         payload: {
-                            spawn: {
-                                x: this.x,
-                                y: this.y
-                            },
-                            users: RoomManager.getInstance().rooms.get(spaceId)?.filter(x => x.id !== this.id)?.map((u) => ({id: u.id})) ?? []
-                        }
+                            userId: this.userId,   // FIX: include own userId
+                            spawn: { x: this.x, y: this.y },
+                            users: existingUsers,
+                        },
                     });
-                    console.log("jouin receiverdf5")
+
+                    // FIX: broadcast user-joined with userId to everyone else
                     RoomManager.getInstance().broadcast({
                         type: "user-joined",
                         payload: {
                             userId: this.userId,
                             x: this.x,
-                            y: this.y
-                        }
+                            y: this.y,
+                        },
                     }, this, this.spaceId!);
                     break;
-                case "move":
-                    const moveX = parsedData.payload.x;
-                    const moveY = parsedData.payload.y;
+                }
+
+                case "move": {
+                    const moveX = parsedData.payload?.x;
+                    const moveY = parsedData.payload?.y;
+
+                    if (moveX === undefined || moveY === undefined) return;
+
                     const xDisplacement = Math.abs(this.x - moveX);
                     const yDisplacement = Math.abs(this.y - moveY);
-                    if ((xDisplacement == 1 && yDisplacement== 0) || (xDisplacement == 0 && yDisplacement == 1)) {
+
+                    // Allow only 1-step move in cardinal direction
+                    if (
+                        (xDisplacement === 1 && yDisplacement === 0) ||
+                        (xDisplacement === 0 && yDisplacement === 1)
+                    ) {
                         this.x = moveX;
                         this.y = moveY;
+
+                        // FIX: broadcast movement WITH userId so others know who moved
                         RoomManager.getInstance().broadcast({
                             type: "movement",
                             payload: {
+                                userId: this.userId,
                                 x: this.x,
-                                y: this.y
-                            }
+                                y: this.y,
+                            },
                         }, this, this.spaceId!);
                         return;
                     }
-                    
+
+                    // Reject invalid move
                     this.send({
                         type: "movement-rejected",
-                        payload: {
-                            x: this.x,
-                            y: this.y
-                        }
+                        payload: { x: this.x, y: this.y },
                     });
-                    
+                    break;
+                }
             }
         });
     }
@@ -116,9 +152,7 @@ export class User {
     destroy() {
         RoomManager.getInstance().broadcast({
             type: "user-left",
-            payload: {
-                userId: this.userId
-            }
+            payload: { userId: this.userId },
         }, this, this.spaceId!);
         RoomManager.getInstance().removeUser(this, this.spaceId!);
     }

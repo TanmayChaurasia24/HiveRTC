@@ -1,249 +1,442 @@
-import { useEffect, useRef, useState } from 'react';
-// Assuming you have lucide-react for icons, a common choice for modern UI
-import { Users, Keyboard } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from "react";
+import { Users, Keyboard } from "lucide-react";
+import { getSpace } from "../lib/api";
+
+type SpaceElement = {
+  id: string;
+  x: number;
+  y: number;
+  element: {
+    id: string;
+    imageUrl: string;
+    width: number;
+    height: number;
+    static: boolean;
+  };
+};
 
 const Arena = () => {
-  const canvasRef = useRef<any>(null);
-  const wsRef = useRef<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>({});
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [users, setUsers] = useState(new Map());
-  const [params, setParams] = useState({ token: '', spaceId: '' });
+  const [params, setParams] = useState({ token: "", spaceId: "" });
+  const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "error">("connecting");
 
-  // No logic changes in this section
-  // Initialize WebSocket connection and handle URL params
+  // Canvas size state for full-screen effect
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // Elements state
+  const [spaceElements, setSpaceElements] = useState<SpaceElement[]>([]);
+  const [spaceDimensions, setSpaceDimensions] = useState({ width: 0, height: 0 });
+
+  // Refs to avoid stale closures in WS callbacks
+  const currentUserRef = useRef<any>(null);
+  const usersRef = useRef<Map<string, any>>(new Map());
+
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+  useEffect(() => { usersRef.current = users; }, [users]);
+
+  // Handle window resize
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token') || '';
-    const spaceId = urlParams.get('spaceId') || '';
-    setParams({ token, spaceId });
-
-    // Initialize WebSocket
-    wsRef.current = new WebSocket('ws://localhost:3001'); // Replace with your WS_URL
-
-    wsRef.current.onopen = () => {
-      // Join the space once connected
-      wsRef.current.send(JSON.stringify({
-        type: 'join',
-        payload: {
-          spaceId,
-          token
-        }
-      }));
-    };
-
-    wsRef.current.onmessage = (event: any) => {
-      const message = JSON.parse(event.data);
-      handleWebSocketMessage(message);
-    };
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
+    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // No logic changes in this section
-  const handleWebSocketMessage = (message: any) => {
-    switch (message.type) {
-      case 'space-joined':
-        setCurrentUser({
-          x: message.payload.spawn.x,
-          y: message.payload.spawn.y,
-          userId: message.payload.userId
-        });
-        const userMap = new Map();
-        message.payload.users.forEach((user: any) => {
-          userMap.set(user.userId, user);
-        });
-        setUsers(userMap);
-        break;
-      case 'user-joined':
-        setUsers(prev => {
-          const newUsers = new Map(prev);
-          newUsers.set(message.payload.userId, {
-            x: message.payload.x,
-            y: message.payload.y,
-            userId: message.payload.userId
-          });
-          return newUsers;
-        });
-        break;
-      case 'movement':
-        setUsers(prev => {
-          const newUsers = new Map(prev);
-          const user = newUsers.get(message.payload.userId);
-          if (user) {
-            user.x = message.payload.x;
-            user.y = message.payload.y;
-            newUsers.set(message.payload.userId, user);
-          }
-          return newUsers;
-        });
-        break;
-      case 'movement-rejected':
-        setCurrentUser((prev: any) => ({
-          ...prev,
-          x: message.payload.x,
-          y: message.payload.y
-        }));
-        break;
-      case 'user-left':
-        setUsers(prev => {
-          const newUsers = new Map(prev);
-          newUsers.delete(message.payload.userId);
-          return newUsers;
-        });
-        break;
-    }
-  };
-
-  // No logic changes in this section
-  const handleMove = (newX: any, newY: any) => {
-    if (!currentUser) return;
-    wsRef.current.send(JSON.stringify({
-      type: 'move',
-      payload: {
-        x: newX,
-        y: newY,
-        userId: currentUser.userId
+  // Pre-load images
+  const loadedImages = useRef<Map<string, HTMLImageElement>>(new Map());
+  useEffect(() => {
+    spaceElements.forEach(el => {
+      if (!loadedImages.current.has(el.element.imageUrl)) {
+        const img = new Image();
+        img.src = el.element.imageUrl;
+        loadedImages.current.set(el.element.imageUrl, img);
       }
-    }));
-  };
+    });
+  }, [spaceElements]);
 
-  // UI ENHANCEMENT: All changes below are purely visual
+  // ─── Fetch Space Data ────────────────────────────────────────────
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const spaceId = urlParams.get("spaceId");
+    if (!spaceId) return;
+
+    getSpace(spaceId).then((data) => {
+      setSpaceElements(data.elements || []);
+      if (data.dimensions) {
+        const [w, h] = data.dimensions.split("x").map(Number);
+        setSpaceDimensions({ width: w, height: h });
+      }
+    }).catch(err => console.error("Failed to load space elements:", err));
+  }, []);
+
+  // ─── WebSocket setup ─────────────────────────────────────────────
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token") || "";
+    const spaceId = urlParams.get("spaceId") || "";
+    setParams({ token, spaceId });
+
+    if (!spaceId || !token) { setWsStatus("error"); return; }
+
+    const ws = new WebSocket("ws://localhost:3001");
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsStatus("connected");
+      ws.send(JSON.stringify({ type: "join", payload: { spaceId, token } }));
+    };
+
+    ws.onerror = () => setWsStatus("error");
+    ws.onclose = () => setWsStatus("error");
+
+    ws.onmessage = (event: MessageEvent) => {
+      const message = JSON.parse(event.data);
+
+      switch (message.type) {
+        case "space-joined": {
+          const me = {
+            x: message.payload.spawn.x,
+            y: message.payload.spawn.y,
+            userId: message.payload.userId,
+            smoothX: message.payload.spawn.x, // track grid coordinates for lerp
+            smoothY: message.payload.spawn.y,
+          };
+          setCurrentUser(me);
+          currentUserRef.current = me;
+
+          const userMap = new Map<string, any>();
+          message.payload.users.forEach((u: any) => {
+            userMap.set(u.userId, { ...u, smoothX: u.x, smoothY: u.y });
+          });
+          setUsers(userMap);
+          usersRef.current = userMap;
+          break;
+        }
+
+        case "user-joined": {
+          setUsers((prev) => {
+            const next = new Map(prev);
+            next.set(message.payload.userId, {
+              x: message.payload.x,
+              y: message.payload.y,
+              userId: message.payload.userId,
+              smoothX: message.payload.x,
+              smoothY: message.payload.y,
+            });
+            usersRef.current = next;
+            return next;
+          });
+          break;
+        }
+
+        case "movement": {
+          const me = currentUserRef.current;
+          if (me && message.payload.userId === me.userId) {
+            const updated = { ...me, x: message.payload.x, y: message.payload.y };
+            setCurrentUser(updated);
+            currentUserRef.current = updated;
+          } else {
+            setUsers((prev) => {
+              const next = new Map(prev);
+              const u = next.get(message.payload.userId);
+              if (u) next.set(message.payload.userId, { ...u, x: message.payload.x, y: message.payload.y });
+              usersRef.current = next;
+              return next;
+            });
+          }
+          break;
+        }
+
+        case "movement-rejected": {
+          setCurrentUser((prev: any) => {
+            const updated = { ...prev, x: message.payload.x, y: message.payload.y };
+            currentUserRef.current = updated;
+            return updated;
+          });
+          break;
+        }
+
+        case "user-left": {
+          setUsers((prev) => {
+            const next = new Map(prev);
+            next.delete(message.payload.userId);
+            usersRef.current = next;
+            return next;
+          });
+          break;
+        }
+      }
+    };
+    return () => ws.close();
+  }, []);
+
+  // ─── Dynamic Sizing Calculations ─────────────────────────────────
+  // Calculate the perfect tile size so the whole map fits inside the window
+  const computedMetrics = useMemo(() => {
+    if (spaceDimensions.width === 0 || spaceDimensions.height === 0) {
+      return { tileSize: 50, offsetX: 0, offsetY: 0, isScaled: false };
+    }
+
+    // Leave a 10% padding boundary around the edges of the screen
+    const availableWidth = windowSize.width * 0.9;
+    const availableHeight = windowSize.height * 0.8; // leave room for HUD at top
+    
+    const tileW = availableWidth / spaceDimensions.width;
+    const tileH = availableHeight / spaceDimensions.height;
+    
+    // Choose the smallest to ensure absolute fit on screen
+    let tileSize = Math.min(tileW, tileH);
+    
+    // Don't let tiles get cartoonishly gigantic on small 2x2 maps
+    tileSize = Math.min(Math.floor(tileSize), 80); 
+
+    const mapTotalWidth = spaceDimensions.width * tileSize;
+    const mapTotalHeight = spaceDimensions.height * tileSize;
+    
+    // Exact center alignment coordinates
+    const offsetX = (windowSize.width - mapTotalWidth) / 2;
+    // Push it down slightly because of the top HUD
+    const offsetY = ((windowSize.height - mapTotalHeight) / 2) + 20;
+
+    return { 
+      tileSize, 
+      offsetX, 
+      offsetY, 
+      // If scale is below certain threshold, hide dense UI elements (like name tags) to prevent clutter
+      isHighDensity: tileSize < 30 
+    };
+  }, [spaceDimensions, windowSize]);
+
+  // ─── Render Loop ──────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let animationFrameId: number;
+    const { tileSize, offsetX, offsetY, isHighDensity } = computedMetrics;
 
-    // --- Grid UI Enhancement ---
-    ctx.strokeStyle = '#f0f0f0'; // Lighter grid color
-    ctx.lineWidth = 1;
-    for (let i = 0; i < canvas.width; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-    }
-    for (let i = 0; i < canvas.height; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
-
-    // --- Avatar Drawing Helper Function ---
-    const drawAvatar = (user: any, isCurrentUser = false) => {
-      const x = user.x * 50;
-      const y = user.y * 50;
-      const radius = 20;
-
-      // 1. Drop Shadow for depth
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 4;
-      
-      // 2. Gradient Fill for a 3D look
-      const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/4, x, y, radius * 1.5);
-      if (isCurrentUser) {
-        gradient.addColorStop(0, '#a2d2ff'); // Lighter blue
-        gradient.addColorStop(1, '#0077b6'); // Deeper blue for "You"
-      } else {
-        gradient.addColorStop(0, '#a7c957'); // Lighter green
-        gradient.addColorStop(1, '#386641'); // Deeper green for others
+    const renderLoop = () => {
+      // 1. Array smoothing logic (Lerp in Grid Units, not Absolute Pixels)
+      if (currentUserRef.current) {
+        currentUserRef.current.smoothX += (currentUserRef.current.x - currentUserRef.current.smoothX) * 0.3;
+        currentUserRef.current.smoothY += (currentUserRef.current.y - currentUserRef.current.smoothY) * 0.3;
       }
-      ctx.fillStyle = gradient;
-      
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      usersRef.current.forEach((u) => {
+        if (u.smoothX === undefined) u.smoothX = u.x;
+        if (u.smoothY === undefined) u.smoothY = u.y;
+        u.smoothX += (u.x - u.smoothX) * 0.3;
+        u.smoothY += (u.y - u.smoothY) * 0.3;
+      });
 
-      // 3. Outline for definition
-      ctx.shadowColor = 'transparent'; // Turn off shadow for outline and text
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = isCurrentUser ? '#023e8a' : '#283618';
-      ctx.stroke();
-      
-      // 4. Enhanced Name Tag
-      const name = isCurrentUser ? 'You' : `User ${user.userId}`;
-      ctx.font = 'bold 12px Arial';
-      const textWidth = ctx.measureText(name).width;
-      const tagPadding = 8;
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent black background for tag
-      ctx.beginPath();
-      ctx.roundRect(x - textWidth/2 - tagPadding, y + radius + 8, textWidth + tagPadding*2, 22, [11]);
-      ctx.fill();
+      // 2. Clear Screen
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0f0f1a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = '#fff'; // White text
-      ctx.textAlign = 'center';
-      ctx.fillText(name, x, y + radius + 24);
+      ctx.save();
+      // Translate to perfectly center the map
+      ctx.translate(offsetX, offsetY);
+
+      // Draw Map Boundary / Grid Floor
+      if (spaceDimensions.width > 0) {
+        ctx.fillStyle = "#161625"; 
+        ctx.fillRect(0, 0, spaceDimensions.width * tileSize, spaceDimensions.height * tileSize);
+        
+        // Draw grid lines only if the map isn't insanely cramped (improves performance)
+        if (!isHighDensity) {
+          ctx.strokeStyle = "rgba(167, 139, 250, 0.08)";
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= spaceDimensions.width; i++) {
+            ctx.beginPath(); ctx.moveTo(i * tileSize, 0); ctx.lineTo(i * tileSize, spaceDimensions.height * tileSize); ctx.stroke();
+          }
+          for (let i = 0; i <= spaceDimensions.height; i++) {
+            ctx.beginPath(); ctx.moveTo(0, i * tileSize); ctx.lineTo(spaceDimensions.width * tileSize, i * tileSize); ctx.stroke();
+          }
+        }
+
+        ctx.strokeStyle = "#a78bfa";
+        ctx.lineWidth = windowSize.width > 1000 ? 3 : 1; // thicker border on large screens
+        ctx.strokeRect(0, 0, spaceDimensions.width * tileSize, spaceDimensions.height * tileSize);
+      }
+
+      // Draw Elements
+      spaceElements.forEach(item => {
+        const img = loadedImages.current.get(item.element.imageUrl);
+        const px = item.x * tileSize;
+        const py = item.y * tileSize;
+        const drawWidth = item.element.width * tileSize;
+        const drawHeight = item.element.height * tileSize;
+
+        if (img && img.complete) {
+          ctx.drawImage(img, px, py, drawWidth, drawHeight);
+        } else {
+          ctx.fillStyle = item.element.static ? "#2a2a45" : "#1e1e30";
+          ctx.fillRect(px, py, drawWidth, drawHeight);
+          ctx.strokeStyle = "#4a4a6a";
+          ctx.strokeRect(px, py, drawWidth, drawHeight);
+        }
+      });
+
+      // Draw Avatars Function
+      const drawAvatar = (user: any, isMe = false) => {
+        if (!user || user.smoothX === undefined) return;
+        
+        // Convert smooth grid units into actual pixels based on current window scale
+        const px = user.smoothX * tileSize + tileSize / 2;
+        const py = user.smoothY * tileSize + tileSize / 2;
+        
+        // Dynamically scale down Avatar radius so it fits inside tiny blocks 
+        // if zooming out for massive maps
+        const radius = Math.min(18, tileSize * 0.4);
+
+        ctx.shadowColor = isMe ? "#a78bfa" : "#4ade80";
+        ctx.shadowBlur = isHighDensity ? 3 : 12;
+
+        const grad = ctx.createRadialGradient(px - (radius*0.3), py - (radius*0.3), radius*0.1, px, py, radius);
+        if (isMe) { grad.addColorStop(0, "#c4b5fd"); grad.addColorStop(1, "#7c3aed"); }
+        else { grad.addColorStop(0, "#86efac"); grad.addColorStop(1, "#16a34a"); }
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = "transparent";
+        ctx.strokeStyle = isMe ? "#ede9fe" : "#dcfce7";
+        ctx.lineWidth = isHighDensity ? 1 : 2;
+        ctx.stroke();
+
+        // If map isn't completely incredibly zoomed out, draw nametags/emojis
+        if (!isHighDensity) {
+          ctx.font = `${Math.min(16, tileSize * 0.4)}px Arial`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(isMe ? "🧑" : "👤", px, py);
+
+          const label = isMe ? "You" : `User ${user.userId.slice(0, 6)}`;
+          ctx.font = "bold 11px Inter, Arial";
+          ctx.textBaseline = "alphabetic";
+          const tw = ctx.measureText(label).width;
+          const pad = 6;
+
+          ctx.fillStyle = isMe ? "rgba(124, 58, 237, 0.85)" : "rgba(22, 163, 74, 0.85)";
+          ctx.beginPath();
+          ctx.roundRect(px - tw / 2 - pad, py + radius + 4, tw + pad * 2, 18, [6]);
+          ctx.fill();
+
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "center";
+          ctx.fillText(label, px, py + radius + 17);
+        }
+      };
+
+      usersRef.current.forEach((u) => drawAvatar(u, false));
+      if (currentUserRef.current) drawAvatar(currentUserRef.current, true);
+
+      ctx.restore();
+
+      animationFrameId = requestAnimationFrame(renderLoop);
     };
-    
-    // Draw current user
-    if (currentUser && currentUser.x != null) {
-      drawAvatar(currentUser, true);
-    }
 
-    // Draw other users
-    users.forEach(user => {
-      if (user.x != null) {
-        drawAvatar(user);
-      }
-    });
-  }, [currentUser, users]);
+    animationFrameId = requestAnimationFrame(renderLoop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [spaceElements, spaceDimensions, computedMetrics, windowSize]);
 
-  // No logic changes in this section
-  const handleKeyDown = (e: any) => {
-    if (!currentUser) return;
-    const { x, y } = currentUser;
+  // ─── Keyboard movement ────────────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const me = currentUserRef.current;
+    if (!me || wsRef.current?.readyState !== WebSocket.OPEN) return;
+
+    const { x, y } = me;
+    let nx = x, ny = y;
+
     switch (e.key) {
-      case 'ArrowUp': handleMove(x, y - 1); break;
-      case 'ArrowDown': handleMove(x, y + 1); break;
-      case 'ArrowLeft': handleMove(x - 1, y); break;
-      case 'ArrowRight': handleMove(x + 1, y); break;
+      case "ArrowUp":    ny = y - 1; break;
+      case "ArrowDown":  ny = y + 1; break;
+      case "ArrowLeft":  nx = x - 1; break;
+      case "ArrowRight": nx = x + 1; break;
+      default: return; 
     }
+
+    e.preventDefault(); 
+
+    // Bounds check
+    if (spaceDimensions.width > 0) {
+      if (nx < 0 || ny < 0 || nx >= spaceDimensions.width || ny >= spaceDimensions.height) {
+        return; 
+      }
+    }
+
+    // Static element collision
+    const collision = spaceElements.find(el => {
+      if (!el.element.static) return false;
+      return (nx >= el.x && nx < el.x + el.element.width && ny >= el.y && ny < el.y + el.element.height);
+    });
+    if (collision) return;
+
+    const optimistic = { ...me, x: nx, y: ny };
+    setCurrentUser(optimistic);
+    currentUserRef.current = optimistic;
+
+    wsRef.current.send(JSON.stringify({ type: "move", payload: { x: nx, y: ny, userId: me.userId } }));
   };
 
-  // --- COMPONENT LAYOUT UI ENHANCEMENT ---
   return (
-    <div 
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 font-sans"
-      onKeyDown={handleKeyDown} 
+    <div
+      className="arena-root"
+      onKeyDown={handleKeyDown}
       tabIndex={0}
-      // Auto-focus the div to capture keydown events immediately
-      ref={el => el?.focus()} 
+      ref={wrapperRef}
+      style={{ overflow: "hidden", position: "relative" }}
     >
-      <div className="w-full max-w-4xl">
-        <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-800">Real-Time Arena</h1>
-            <div className="flex items-center gap-4 p-2 bg-white rounded-lg shadow-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Users size={20} />
-                <span className="font-semibold">{users.size + (currentUser?.userId ? 1 : 0)}</span>
-              </div>
-              <div className="w-px h-6 bg-gray-200" />
-              <div className="text-xs text-gray-500">
-                <p>Space: <strong className="font-mono">{params.spaceId}</strong></p>
-              </div>
-            </div>
+      <div className="arena-hud" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <div className="arena-title">
+          <span>🐝</span> HiveRTC Arena
         </div>
-        
-        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-2xl bg-white">
-          <canvas
-            ref={canvasRef}
-            width={500}
-            height={500}
-          />
+        <div className="arena-hud-right">
+          <div className={`ws-badge ${wsStatus}`}>
+            {wsStatus === "connected" ? "● Live" : wsStatus === "error" ? "✕ Error" : "○ Connecting"}
+          </div>
+          <div className="arena-users">
+            <Users size={16} />
+            <span>{users.size + (currentUser ? 1 : 0)}</span>
+          </div>
+          <div className="arena-space-id">
+            Space: <strong>{params.spaceId.slice(0, 16)}...</strong>
+          </div>
         </div>
+      </div>
 
-        <div className="flex items-center justify-center mt-4 gap-2 text-gray-500 text-sm">
-            <Keyboard size={18}/>
-            <p>Use the <strong className="font-semibold">arrow keys</strong> to move your avatar</p>
+      {wsStatus === "connecting" && (
+        <div className="arena-overlay" style={{ zIndex: 20 }}>
+          <div className="loader-spinner" />
+          <p>Joining space...</p>
         </div>
+      )}
+      {wsStatus === "error" && (
+        <div className="arena-overlay" style={{ zIndex: 20 }}>
+          <p style={{ color: "#f87171" }}>⚠️ Could not connect to WebSocket server</p>
+          <p style={{ fontSize: "0.8rem", color: "#6b6b8a" }}>Make sure ws://localhost:3001 is running</p>
+        </div>
+      )}
+
+      <canvas 
+        ref={canvasRef} 
+        width={windowSize.width} 
+        height={windowSize.height} 
+        style={{ display: "block", backgroundColor: "#0f0f1a" }} 
+      />
+
+      <div className="arena-hint" style={{ position: "absolute", bottom: 20, right: 20, zIndex: 10 }}>
+        <Keyboard size={16} />
+        Use <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys to move. Map fits to screen!
       </div>
     </div>
   );

@@ -104,3 +104,21 @@ export const CreateMap = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const GetAllElements = async (req: Request, res: Response) => {
+  try {
+    const elements = await client.element.findMany();
+    res.status(200).json({
+      elements: elements.map((e: any) => ({
+        id: e.id,
+        imageUrl: e.imageUrl,
+        width: e.width,
+        height: e.height,
+        static: e.static,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+

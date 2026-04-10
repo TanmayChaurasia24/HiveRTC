@@ -13,6 +13,7 @@ import {
   CreateSpace,
   DeleteSpace,
   GetMyExistingSpaces,
+  GetAllSpaces,
 } from "../../controllers/v1/space.controller.js";
 import {
   AddElementToArena,
@@ -24,6 +25,7 @@ import {
   CreateElement,
   CreateMap,
   UpdateElement,
+  GetAllElements,
 } from "../../controllers/v1/admin.controller.js";
 import { authenticateUser } from "../../middleware/user.js";
 import { loginLimiter, signupLimiter } from "../../middleware/ratelimiter.js";
@@ -45,6 +47,7 @@ v1Router.get("/avatars", getAllAvatars);
 v1Router.post("/space",authenticateUser, CreateSpace);
 v1Router.delete("/space/:spaceId",authenticateUser, DeleteSpace);
 v1Router.get("/space/all",authenticateUser, GetMyExistingSpaces);
+v1Router.get("/spaces", GetAllSpaces); // public – all spaces for browsing
 
 // arena controllers route...
 v1Router.get("/space/:spaceId", GetSpace);
@@ -56,3 +59,4 @@ v1Router.post("/admin/element",adminMiddleware, CreateElement);
 v1Router.put("/admin/element/:elementId",adminMiddleware, UpdateElement);
 v1Router.post("/admin/avatar",adminMiddleware, CreateAvatar);
 v1Router.post("/admin/map",adminMiddleware, CreateMap);
+v1Router.get("/elements", GetAllElements);

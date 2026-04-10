@@ -132,3 +132,30 @@ export const DeleteSpace = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const GetAllSpaces = async (req: Request, res: Response) => {
+  try {
+    const spaces = await client.space.findMany({
+      include: {
+        creator: {
+          select: { username: true },
+        },
+      },
+      orderBy: { id: "desc" },
+    });
+
+    res.status(200).json({
+      spaces: spaces.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        thumbnail: s.thumbnail,
+        dimensions: `${s.width}x${s.height}`,
+        createdBy: s.creator?.username ?? "unknown",
+      })),
+    });
+  } catch (error: any) {
+    console.error("Error in GetAllSpaces:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
