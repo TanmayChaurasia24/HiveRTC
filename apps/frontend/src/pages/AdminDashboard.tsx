@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  createAvatar,
   createElement,
   createMap,
   getAllAvatars,
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
   async function handleCreateAvatar(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const res = await createAvatar(avForm);
+      const res: any = await createAvatar(avForm);
       setAvatars((prev) => [...prev, { id: res.avatarId, ...avForm }]);
       setAvForm({ name: "", imageUrl: "" });
       notify(`✅ Avatar created! ID: ${res.avatarId}`);

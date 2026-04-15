@@ -41,7 +41,7 @@ const VideoLobby = () => {
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-gray-900">Video Lobby</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Enter your details to verify and join the P2P call.
+            Enter your details to verify and join the video call.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ const VideoLobby = () => {
         {/* Footer / Decoration */}
         <div className="relative flex items-center justify-center mt-6">
           <span className="text-xs text-gray-400">
-            Peer-to-Peer Secured Connection
+            High-Performance Video Call
           </span>
         </div>
       </div>

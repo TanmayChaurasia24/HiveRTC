@@ -19,10 +19,11 @@ const Arena = () => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [users, setUsers] = useState(new Map());
   const [params, setParams] = useState({ token: "", spaceId: "" });
+  const [showInteractionButtons, setShowInteractionButtons] = useState(false);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "error">("connecting");
 
   // Canvas size state for full-screen effect
@@ -93,7 +94,7 @@ const Arena = () => {
     ws.onerror = () => setWsStatus("error");
     ws.onclose = () => setWsStatus("error");
 
-    ws.onmessage = (event: MessageEvent) => {
+    ws.onmessage = async (event: MessageEvent) => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
@@ -135,19 +136,28 @@ const Arena = () => {
 
         case "movement": {
           const me = currentUserRef.current;
+          let someOneNearby = false;
+
           if (me && message.payload.userId === me.userId) {
             const updated = { ...me, x: message.payload.x, y: message.payload.y };
             setCurrentUser(updated);
             currentUserRef.current = updated;
           } else {
-            setUsers((prev) => {
-              const next = new Map(prev);
-              const u = next.get(message.payload.userId);
-              if (u) next.set(message.payload.userId, { ...u, x: message.payload.x, y: message.payload.y });
-              usersRef.current = next;
-              return next;
+            const u = usersRef.current.get(message.payload.userId);
+            usersRef.current.set(message.payload.userId, { ...u, x: message.payload.x, y: message.payload.y });
+            setUsers(new Map(usersRef.current));
+          }
+
+          const livePos = currentUserRef.current;
+          if (livePos) {
+            usersRef.current.forEach((user: any) => {
+              if ((Math.abs(user.x - livePos.x) <= 1 && Math.abs(user.y - livePos.y) <= 1)) {
+                someOneNearby = true;
+              }
             });
           }
+
+          setShowInteractionButtons(someOneNearby);
           break;
         }
 
@@ -184,30 +194,30 @@ const Arena = () => {
     // Leave a 10% padding boundary around the edges of the screen
     const availableWidth = windowSize.width * 0.9;
     const availableHeight = windowSize.height * 0.8; // leave room for HUD at top
-    
+
     const tileW = availableWidth / spaceDimensions.width;
     const tileH = availableHeight / spaceDimensions.height;
-    
+
     // Choose the smallest to ensure absolute fit on screen
     let tileSize = Math.min(tileW, tileH);
-    
+
     // Don't let tiles get cartoonishly gigantic on small 2x2 maps
-    tileSize = Math.min(Math.floor(tileSize), 80); 
+    tileSize = Math.min(Math.floor(tileSize), 80);
 
     const mapTotalWidth = spaceDimensions.width * tileSize;
     const mapTotalHeight = spaceDimensions.height * tileSize;
-    
+
     // Exact center alignment coordinates
     const offsetX = (windowSize.width - mapTotalWidth) / 2;
     // Push it down slightly because of the top HUD
     const offsetY = ((windowSize.height - mapTotalHeight) / 2) + 20;
 
-    return { 
-      tileSize, 
-      offsetX, 
-      offsetY, 
+    return {
+      tileSize,
+      offsetX,
+      offsetY,
       // If scale is below certain threshold, hide dense UI elements (like name tags) to prevent clutter
-      isHighDensity: tileSize < 30 
+      isHighDensity: tileSize < 30
     };
   }, [spaceDimensions, windowSize]);
 
@@ -245,9 +255,9 @@ const Arena = () => {
 
       // Draw Map Boundary / Grid Floor
       if (spaceDimensions.width > 0) {
-        ctx.fillStyle = "#161625"; 
+        ctx.fillStyle = "#161625";
         ctx.fillRect(0, 0, spaceDimensions.width * tileSize, spaceDimensions.height * tileSize);
-        
+
         // Draw grid lines only if the map isn't insanely cramped (improves performance)
         if (!isHighDensity) {
           ctx.strokeStyle = "rgba(167, 139, 250, 0.08)";
@@ -286,11 +296,11 @@ const Arena = () => {
       // Draw Avatars Function
       const drawAvatar = (user: any, isMe = false) => {
         if (!user || user.smoothX === undefined) return;
-        
+
         // Convert smooth grid units into actual pixels based on current window scale
         const px = user.smoothX * tileSize + tileSize / 2;
         const py = user.smoothY * tileSize + tileSize / 2;
-        
+
         // Dynamically scale down Avatar radius so it fits inside tiny blocks 
         // if zooming out for massive maps
         const radius = Math.min(18, tileSize * 0.4);
@@ -298,10 +308,10 @@ const Arena = () => {
         ctx.shadowColor = isMe ? "#a78bfa" : "#4ade80";
         ctx.shadowBlur = isHighDensity ? 3 : 12;
 
-        const grad = ctx.createRadialGradient(px - (radius*0.3), py - (radius*0.3), radius*0.1, px, py, radius);
+        const grad = ctx.createRadialGradient(px - (radius * 0.3), py - (radius * 0.3), radius * 0.1, px, py, radius);
         if (isMe) { grad.addColorStop(0, "#c4b5fd"); grad.addColorStop(1, "#7c3aed"); }
         else { grad.addColorStop(0, "#86efac"); grad.addColorStop(1, "#16a34a"); }
-        
+
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
@@ -358,19 +368,19 @@ const Arena = () => {
     let nx = x, ny = y;
 
     switch (e.key) {
-      case "ArrowUp":    ny = y - 1; break;
-      case "ArrowDown":  ny = y + 1; break;
-      case "ArrowLeft":  nx = x - 1; break;
+      case "ArrowUp": ny = y - 1; break;
+      case "ArrowDown": ny = y + 1; break;
+      case "ArrowLeft": nx = x - 1; break;
       case "ArrowRight": nx = x + 1; break;
-      default: return; 
+      default: return;
     }
 
-    e.preventDefault(); 
+    e.preventDefault();
 
     // Bounds check
     if (spaceDimensions.width > 0) {
       if (nx < 0 || ny < 0 || nx >= spaceDimensions.width || ny >= spaceDimensions.height) {
-        return; 
+        return;
       }
     }
 
@@ -385,6 +395,16 @@ const Arena = () => {
     setCurrentUser(optimistic);
     currentUserRef.current = optimistic;
 
+    let someoneNearby = false;
+    usersRef.current.forEach(u => {
+      if ((Math.abs(u.x - nx) <= 1 && Math.abs(u.y - ny) <= 1)) {
+        someoneNearby = true;
+      }
+    });
+
+    setShowInteractionButtons(someoneNearby);
+
+
     wsRef.current.send(JSON.stringify({ type: "move", payload: { x: nx, y: ny, userId: me.userId } }));
   };
 
@@ -396,21 +416,32 @@ const Arena = () => {
       ref={wrapperRef}
       style={{ overflow: "hidden", position: "relative" }}
     >
-      <div className="arena-hud" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <div className="arena-title">
-          <span>🐝</span> HiveRTC Arena
+      <div className="flex justify-between items-center w-full">
+        <div className="arena-hud">
+          <div className="arena-title">
+            <span>🐝</span> HiveRTC Arena
+          </div>
+          <div className="arena-hud-right">
+            <div className={`ws-badge ${wsStatus}`}>
+              {wsStatus === "connected" ? "● Live" : wsStatus === "error" ? "✕ Error" : "○ Connecting"}
+            </div>
+            <div className="arena-users">
+              <Users size={16} />
+              <span>{users.size + (currentUser ? 1 : 0)}</span>
+            </div>
+            <div className="arena-space-id">
+              Space: <strong>{params.spaceId.slice(0, 16)}...</strong>
+            </div>
+          </div>
         </div>
-        <div className="arena-hud-right">
-          <div className={`ws-badge ${wsStatus}`}>
-            {wsStatus === "connected" ? "● Live" : wsStatus === "error" ? "✕ Error" : "○ Connecting"}
-          </div>
-          <div className="arena-users">
-            <Users size={16} />
-            <span>{users.size + (currentUser ? 1 : 0)}</span>
-          </div>
-          <div className="arena-space-id">
-            Space: <strong>{params.spaceId.slice(0, 16)}...</strong>
-          </div>
+
+        <div className="bg-black w-100 ">
+          {showInteractionButtons && (
+            <div className="interaction-buttons">
+              <button className="bg-blue-500 text-white px-4 py-2 rounded-lg">Video Call</button>
+              <button className="bg-green-500 text-white px-4 py-2 rounded-lg">Text Chat</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -427,11 +458,11 @@ const Arena = () => {
         </div>
       )}
 
-      <canvas 
-        ref={canvasRef} 
-        width={windowSize.width} 
-        height={windowSize.height} 
-        style={{ display: "block", backgroundColor: "#0f0f1a" }} 
+      <canvas
+        ref={canvasRef}
+        width={windowSize.width}
+        height={windowSize.height}
+        style={{ display: "block", backgroundColor: "#0f0f1a" }}
       />
 
       <div className="arena-hint" style={{ position: "absolute", bottom: 20, right: 20, zIndex: 10 }}>

@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { SocketProvider } from "./providers/socket-provider";
-import { PeerProvider } from "./providers/peer-providers";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
@@ -19,7 +18,6 @@ function RequireAuth({ children, role }: { children: any; role?: "Admin" | "User
 function App() {
   return (
     <SocketProvider>
-      <PeerProvider>
         <BrowserRouter>
           <Routes>
             {/* Public */}
@@ -61,7 +59,6 @@ function App() {
             <Route path="/room/:roomid" element={<RoomPage />} />
           </Routes>
         </BrowserRouter>
-      </PeerProvider>
     </SocketProvider>
   );
 }
