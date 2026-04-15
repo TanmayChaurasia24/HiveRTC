@@ -163,7 +163,7 @@ const Arena = () => {
 
         case "movement": {
           const me = currentUserRef.current;
-          
+
           if (me && message.payload.userId === me.userId) {
             const updated = { ...me, x: message.payload.x, y: message.payload.y };
             setCurrentUser(updated);

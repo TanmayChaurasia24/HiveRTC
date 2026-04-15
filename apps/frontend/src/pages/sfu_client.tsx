@@ -32,9 +32,8 @@ function VideoPlayer({
       autoPlay
       playsInline
       muted={isLocal}
-      className={`w-full h-full object-cover rounded-2xl shadow-xl ring-1 ring-slate-800 ${
-        isLocal ? "scale-x-[-1]" : ""
-      }`}
+      className={`w-full h-full object-cover rounded-2xl shadow-xl ring-1 ring-slate-800 ${isLocal ? "scale-x-[-1]" : ""
+        }`}
     />
   );
 }
@@ -91,13 +90,13 @@ export default function SfuClient() {
     <div className="min-h-[100dvh] bg-[#06080e] text-slate-100 selection:bg-indigo-500/30 overflow-hidden flex flex-col items-center relative font-sans w-full">
       {/* Dynamic Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 flex items-center justify-center">
-        <div 
-          className="absolute top-[5%] left-[10%] w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-indigo-600/30 rounded-full blur-[80px] md:blur-[120px] mix-blend-screen animate-pulse" 
-          style={{ animationDuration: '8s' }} 
+        <div
+          className="absolute top-[5%] left-[10%] w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-indigo-600/30 rounded-full blur-[80px] md:blur-[120px] mix-blend-screen animate-pulse"
+          style={{ animationDuration: '8s' }}
         />
-        <div 
-          className="absolute bottom-[10%] right-[5%] w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-blue-600/20 rounded-full blur-[100px] md:blur-[140px] mix-blend-screen animate-pulse" 
-          style={{ animationDuration: '12s', animationDelay: '2s' }} 
+        <div
+          className="absolute bottom-[10%] right-[5%] w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-blue-600/20 rounded-full blur-[100px] md:blur-[140px] mix-blend-screen animate-pulse"
+          style={{ animationDuration: '12s', animationDelay: '2s' }}
         />
         <div className="absolute top-[40%] right-[20%] w-[250px] md:w-[400px] h-[250px] md:h-[400px] bg-purple-600/20 rounded-full blur-[90px] md:blur-[100px] mix-blend-screen" />
       </div>
@@ -110,7 +109,7 @@ export default function SfuClient() {
           <div className="bg-white/[0.04] backdrop-blur-3xl border border-white/10 rounded-3xl md:rounded-[2rem] shadow-2xl p-6 sm:p-10 w-full transform transition-all relative overflow-hidden group">
             {/* Glossy top reflection */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            
+
             <div className="mb-8 md:mb-10 text-center flex flex-col items-center">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-indigo-500 via-blue-600 to-cyan-500 rounded-2xl md:rounded-[1.5rem] flex items-center justify-center mb-4 md:mb-6 shadow-[0_0_30px_rgba(99,102,241,0.4)] ring-1 ring-white/20 group-hover:scale-105 transition-transform duration-500">
                 <Video className="w-8 h-8 md:w-10 md:h-10 text-white drop-shadow-md" />
@@ -197,12 +196,12 @@ export default function SfuClient() {
                 </div>
               </div>
             </div>
-            
+
             <div className="pointer-events-auto flex items-center gap-3">
-               <div className="text-[9px] md:text-xs font-bold text-slate-300 bg-white/5 backdrop-blur-xl px-2 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border border-white/10 shadow-lg tracking-widest flex items-center gap-1.5 md:gap-2">
-                 <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,1)]"></span>
-                 SFU ACTIVE
-               </div>
+              <div className="text-[9px] md:text-xs font-bold text-slate-300 bg-white/5 backdrop-blur-xl px-2 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border border-white/10 shadow-lg tracking-widest flex items-center gap-1.5 md:gap-2">
+                <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,1)]"></span>
+                SFU ACTIVE
+              </div>
             </div>
           </div>
 
@@ -219,8 +218,8 @@ export default function SfuClient() {
                     {!isCamOn && (
                       <div className="absolute inset-0 flex items-center justify-center bg-[#0a0f1c]/90 backdrop-blur-xl">
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shadow-2xl relative">
-                           <div className="absolute inset-0 rounded-full border border-red-500/30 animate-pulse"></div>
-                           <VideoOff className="w-6 h-6 md:w-10 md:h-10 text-slate-500" />
+                          <div className="absolute inset-0 rounded-full border border-red-500/30 animate-pulse"></div>
+                          <VideoOff className="w-6 h-6 md:w-10 md:h-10 text-slate-500" />
                         </div>
                       </div>
                     )}
@@ -263,11 +262,10 @@ export default function SfuClient() {
             <div className="pointer-events-auto bg-white/10 backdrop-blur-3xl border border-white/10 rounded-2xl md:rounded-[2rem] p-2 md:p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-2 md:gap-3">
               <button
                 onClick={toggleMic}
-                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-300 group relative ${
-                  isMicOn
-                    ? "bg-white/15 hover:bg-white/25 text-white shadow-inner"
-                    : "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] border border-red-400"
-                }`}
+                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-300 group relative ${isMicOn
+                  ? "bg-white/15 hover:bg-white/25 text-white shadow-inner"
+                  : "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] border border-red-400"
+                  }`}
               >
                 {isMicOn ? (
                   <Mic className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />
@@ -278,11 +276,10 @@ export default function SfuClient() {
 
               <button
                 onClick={toggleCam}
-                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-300 group relative ${
-                  isCamOn
-                    ? "bg-white/15 hover:bg-white/25 text-white shadow-inner"
-                    : "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] border border-red-400"
-                }`}
+                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-300 group relative ${isCamOn
+                  ? "bg-white/15 hover:bg-white/25 text-white shadow-inner"
+                  : "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] border border-red-400"
+                  }`}
               >
                 {isCamOn ? (
                   <Video className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />

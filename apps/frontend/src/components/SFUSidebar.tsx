@@ -80,7 +80,7 @@ export const SFUSidebar = ({
 
   return (
     <div className="w-[30%] bg-[#06080e] border-l border-zinc-900 flex flex-col relative z-20 h-full pointer-events-auto shadow-2xl overflow-hidden">
-      
+
       {/* Background Ambience */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[5%] left-[10%] w-[300px] h-[300px] bg-indigo-600/20 rounded-full blur-[100px] mix-blend-screen" />
@@ -103,7 +103,7 @@ export const SFUSidebar = ({
                 Connecting...
               </div>
             ) : (
-                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded border border-white/5 text-red-400">
+              <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded border border-white/5 text-red-400">
                 Disconnected
               </div>
             )}
@@ -116,11 +116,11 @@ export const SFUSidebar = ({
 
       <div className="flex-1 p-3 md:p-4 flex flex-col justify-start items-center overflow-y-auto relative z-10 custom-scrollbar">
         {!joined ? (
-           <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
-             <div className="loader-spinner mb-4 border-t-indigo-500" />
-             <p className="text-white text-sm font-medium">Negotiating Connection...</p>
-             <p className="text-white/50 text-xs mt-1">Powered by Mediasoup</p>
-           </div>
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+            <div className="loader-spinner mb-4 border-t-indigo-500" />
+            <p className="text-white text-sm font-medium">Negotiating Connection...</p>
+            <p className="text-white/50 text-xs mt-1">Powered by Mediasoup</p>
+          </div>
         ) : (
           <div className={`grid gap-3 w-full h-auto ${gridClass} items-start`}>
             {/* Local Video Stream */}
