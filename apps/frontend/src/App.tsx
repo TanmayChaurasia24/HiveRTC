@@ -4,8 +4,6 @@ import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import Arena from "./pages/Game";
-import RoomPage from "./pages/Room";
-import VideoLobby from "./pages/Video";
 
 function RequireAuth({ children, role }: { children: any; role?: "Admin" | "User" }) {
   const token = localStorage.getItem("token");
@@ -18,47 +16,43 @@ function RequireAuth({ children, role }: { children: any; role?: "Admin" | "User
 function App() {
   return (
     <SocketProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={<Auth />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+      <BrowserRouter>
+        <Routes>
+          {/* Public */}
+          <Route path="/login" element={<Auth />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Admin only */}
-            <Route
-              path="/admin"
-              element={
-                <RequireAuth role="Admin">
-                  <AdminDashboard />
-                </RequireAuth>
-              }
-            />
+          {/* Admin only */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth role="Admin">
+                <AdminDashboard />
+              </RequireAuth>
+            }
+          />
 
-            {/* User only */}
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth role="User">
-                  <UserDashboard />
-                </RequireAuth>
-              }
-            />
+          {/* User only */}
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth role="User">
+                <UserDashboard />
+              </RequireAuth>
+            }
+          />
 
-            {/* Game arena – accessible to authenticated users */}
-            <Route
-              path="/arena"
-              element={
-                <RequireAuth>
-                  <Arena />
-                </RequireAuth>
-              }
-            />
-
-            {/* Video routes */}
-            <Route path="/lobby" element={<VideoLobby />} />
-            <Route path="/room/:roomid" element={<RoomPage />} />
-          </Routes>
-        </BrowserRouter>
+          {/* Game arena – accessible to authenticated users */}
+          <Route
+            path="/arena"
+            element={
+              <RequireAuth>
+                <Arena />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
     </SocketProvider>
   );
 }

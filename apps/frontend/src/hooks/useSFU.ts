@@ -247,26 +247,36 @@ export function useSFU() {
     if (audioProducer) {
       if (isMicOn) {
         audioProducer.pause();
-        setIsMicOn(false);
       } else {
         audioProducer.resume();
-        setIsMicOn(true);
       }
     }
-  }, [isMicOn]);
+    
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = !isMicOn;
+    }
+    
+    setIsMicOn(!isMicOn);
+  }, [isMicOn, localStream]);
 
   const toggleCam = useCallback(() => {
     const videoProducer = producersRef.current.get("video");
     if (videoProducer) {
       if (isCamOn) {
         videoProducer.pause();
-        setIsCamOn(false);
       } else {
         videoProducer.resume();
-        setIsCamOn(true);
       }
     }
-  }, [isCamOn]);
+    
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.enabled = !isCamOn;
+    }
+    
+    setIsCamOn(!isCamOn);
+  }, [isCamOn, localStream]);
 
   const leaveRoom = useCallback(() => {
     socketRef.current?.disconnect();
