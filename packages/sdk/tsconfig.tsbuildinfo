@@ -1,0 +1,1 @@
+{"root":["./src/activespeaker.ts","./src/eventemitter.ts","./src/hivertc.ts","./src/mediaengine.ts","./src/networkmonitor.ts","./src/room.ts","./src/signalingclient.ts","./src/spatialaudio.ts","./src/errors.ts","./src/index.ts","./src/types.ts"],"version":"5.9.3"}

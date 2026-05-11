@@ -17,20 +17,26 @@ export const setupSocketHandlers = (io: Server) => {
     socket.on(
       "join_room",
       async (
-        { roomId }: { roomId: string },
+        { roomId, userId }: { roomId: string; userId?: string },
         callback: (res: SocketCallback) => void,
       ) => {
         try {
           const room = await roomManager.getOrCreateRoom(roomId);
           roomManager.joinRoom(roomId, socket.id);
-          room.addPeer(socket.id);
+          room.addPeer(socket.id, userId);
 
           socket.join(roomId);
 
-          const existingProducers: { producerId: string }[] = [];
-          room.peers.forEach((peer) => {
+          const existingProducers: { producerId: string; userId: string; kind: string }[] = [];
+          room.peers.forEach((peer, peerId) => {
+            // Don't send the joiner their own producers
+            if (peerId === socket.id) return;
             peer.producers.forEach((producer) => {
-              existingProducers.push({ producerId: producer.id });
+              existingProducers.push({
+                producerId: producer.id,
+                userId: peer.userId,
+                kind: producer.kind,
+              });
             });
           });
 
@@ -147,9 +153,12 @@ export const setupSocketHandlers = (io: Server) => {
           peer?.producers.set(producer.id, producer);
 
           if (room) {
+            const thisPeer = room.peers.get(socket.id);
             socket.to(room.roomId).emit("new-producer", {
               producerId: producer.id,
               socketId: socket.id,
+              userId: thisPeer?.userId || socket.id,
+              kind: producer.kind,
             });
           }
 
@@ -236,7 +245,89 @@ export const setupSocketHandlers = (io: Server) => {
       },
     );
 
+    // --- PAUSE CONSUMER (proximity-driven) ---
+    socket.on(
+      "pauseConsumer",
+      async ({ consumerId }: { consumerId: string }) => {
+        try {
+          const room = roomManager.getRoomBySocketId(socket.id);
+          const peer = room?.peers.get(socket.id);
+          const consumer = peer?.consumers.get(consumerId);
+          if (consumer && !consumer.closed) {
+            await consumer.pause();
+          }
+        } catch (e) {
+          console.error("pauseConsumer error", e);
+        }
+      },
+    );
+
+    // --- RESUME CONSUMER (proximity-driven, re-entering radius) ---
+    socket.on(
+      "resumeConsumer",
+      async ({ consumerId }: { consumerId: string }) => {
+        try {
+          const room = roomManager.getRoomBySocketId(socket.id);
+          const peer = room?.peers.get(socket.id);
+          const consumer = peer?.consumers.get(consumerId);
+          if (consumer && !consumer.closed && consumer.paused) {
+            await consumer.resume();
+          }
+        } catch (e) {
+          console.error("resumeConsumer error", e);
+        }
+      },
+    );
+
+    // --- CLOSE CONSUMER (far outside proximity, free resources) ---
+    socket.on(
+      "closeConsumer",
+      async ({ consumerId }: { consumerId: string }) => {
+        try {
+          const room = roomManager.getRoomBySocketId(socket.id);
+          const peer = room?.peers.get(socket.id);
+          const consumer = peer?.consumers.get(consumerId);
+          if (consumer && !consumer.closed) {
+            consumer.close();
+            peer?.consumers.delete(consumerId);
+          }
+        } catch (e) {
+          console.error("closeConsumer error", e);
+        }
+      },
+    );
+
+    // --- CHAT MESSAGE (SDK feature: relay to room) ---
+    socket.on("chat-message", (message: any) => {
+      const room = roomManager.getRoomBySocketId(socket.id);
+      if (room) {
+        socket.to(room.roomId).emit("chat-message", message);
+      }
+    });
+
+    // --- HAND RAISE (SDK feature: relay to room) ---
+    socket.on("hand-raised", (data: any) => {
+      const room = roomManager.getRoomBySocketId(socket.id);
+      if (room) {
+        socket.to(room.roomId).emit("hand-raised", data);
+      }
+    });
+
+    // --- POSITION UPDATE (Spatial Audio: relay to room) ---
+    socket.on("position-update", (data: any) => {
+      const room = roomManager.getRoomBySocketId(socket.id);
+      if (room) {
+        socket.to(room.roomId).emit("position-update", data);
+      }
+    });
+
     socket.on("disconnect", () => {
+      // Notify room that this user left so clients can call onPeerLeft
+      const room = roomManager.getRoomBySocketId(socket.id);
+      if (room) {
+        const thisPeer = room.peers.get(socket.id);
+        socket.to(room.roomId).emit("peerLeft", { userId: thisPeer?.userId || socket.id });
+      }
       roomManager.handleDisconnect(socket.id);
     });
   });

@@ -35,15 +35,13 @@ class RedisService {
 
   async updateNodeLoad(nodeIp: string, load: number) {
     if (this.isConnected) {
-      //@ts-ignore
-      await this.client.zadd("media_node_loads", { score: load, value: nodeIp });
+      await this.client.zAdd("media_node_loads", [{ score: load, value: nodeIp }]);
     }
   }
 
   async getLeastLoadedNode(): Promise<string | null> {
     if (this.isConnected) {
-      //@ts-ignore
-      const result: any[] = await this.client.zrange("media_node_loads", 0, 0);
+      const result = await this.client.zRange("media_node_loads", 0, 0);
       return result[0] || process.env.NODE_IP || "127.0.0.1";
     } else {
       return process.env.NODE_IP || "127.0.0.1";

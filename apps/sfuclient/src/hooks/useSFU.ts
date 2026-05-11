@@ -8,6 +8,7 @@ type Consumer = types.Consumer;
 
 export type RemoteMedia = {
   producerId: string;
+  userId: string;
   kind: "audio" | "video";
   stream: MediaStream;
 };
@@ -93,8 +94,10 @@ export function useSFU() {
     socket: Socket,
     device: Device,
     recvTransport: Transport,
-    producerId: string
+    producerId: string,
+    userId: string = "unknown"
   ) => {
+    console.log(`[useSFU] Consuming producer: ${producerId} (userId: ${userId})`);
     socket.emit(
       "consume",
       {
@@ -104,11 +107,12 @@ export function useSFU() {
       },
       async (response: any) => {
         if (response.error) {
-          console.error("Consume error:", response.error);
+          console.error("[useSFU] Consume error:", response.error);
           return;
         }
 
         const { id, kind, rtpParameters } = response;
+        console.log(`[useSFU] Consumer created: kind=${kind}, consumerId=${id}`);
         const consumer = await recvTransport.consume({
           id,
           producerId,
@@ -119,13 +123,15 @@ export function useSFU() {
         consumersRef.current.set(producerId, consumer);
 
         const stream = new MediaStream([consumer.track]);
+        console.log(`[useSFU] Track state: enabled=${consumer.track.enabled}, readyState=${consumer.track.readyState}, muted=${consumer.track.muted}`);
         setRemoteMedia((prev) => [
           ...prev,
-          { producerId, kind: kind as "audio" | "video", stream },
+          { producerId, userId, kind: kind as "audio" | "video", stream },
         ]);
 
         // UNPAUSE immediately
         socket.emit("consumer-resume", { consumerId: id });
+        console.log(`[useSFU] Consumer resumed: ${id}`);
       }
     );
   };
@@ -179,10 +185,17 @@ export function useSFU() {
           );
 
           // 5. Produce Local Media
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: true,
-          });
+          let stream: MediaStream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: true,
+            });
+            console.log("[useSFU] getUserMedia OK — audio tracks:", stream.getAudioTracks().length, "video tracks:", stream.getVideoTracks().length);
+          } catch (mediaErr) {
+            console.error("[useSFU] getUserMedia FAILED:", mediaErr);
+            throw mediaErr;
+          }
           setLocalStream(stream);
 
           const videoTrack = stream.getVideoTracks()[0];
@@ -193,12 +206,16 @@ export function useSFU() {
               track: videoTrack,
             });
             producersRef.current.set("video", videoProducer);
+            console.log("[useSFU] Video producer created:", videoProducer.id);
           }
           if (audioTrack && sendTransportRef.current) {
             const audioProducer = await sendTransportRef.current.produce({
               track: audioTrack,
             });
             producersRef.current.set("audio", audioProducer);
+            console.log("[useSFU] Audio producer created:", audioProducer.id, "track enabled:", audioTrack.enabled);
+          } else {
+            console.warn("[useSFU] No audio track or send transport — audio will NOT work!");
           }
 
           setJoined(true);
@@ -211,20 +228,22 @@ export function useSFU() {
                 socket,
                 device,
                 recvTransportRef.current!,
-                p.producerId
+                p.producerId,
+                p.userId || "unknown"
               );
             }
           }
         });
       });
 
-      socket.on("new-producer", async ({ producerId }: any) => {
+      socket.on("new-producer", async ({ producerId, userId }: any) => {
         if (deviceRef.current && recvTransportRef.current) {
           await consumeRemote(
             socket,
             deviceRef.current,
             recvTransportRef.current,
-            producerId
+            producerId,
+            userId || "unknown"
           );
         }
       });
@@ -301,5 +320,6 @@ export function useSFU() {
     isCamOn,
     connectionState,
     joined,
+    socketRef,
   };
 }

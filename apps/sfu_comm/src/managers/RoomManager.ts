@@ -3,6 +3,7 @@ import { workerManager } from "./WorkerManager.js";
 
 interface Peer {
   id: string;
+  userId: string;
   transports: Map<
     string,
     mediasoup.types.WebRtcTransport | mediasoup.types.PipeTransport
@@ -19,9 +20,10 @@ class Room {
     public router: mediasoup.types.Router,
   ) {}
 
-  addPeer(peerId: string) {
+  addPeer(peerId: string, userId?: string) {
     this.peers.set(peerId, {
       id: peerId,
+      userId: userId || peerId,
       transports: new Map(), 
       producers: new Map(),
       consumers: new Map(),

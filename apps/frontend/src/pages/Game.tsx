@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Users, Keyboard } from "lucide-react";
+import { Users } from "lucide-react";
 import { getSpace } from "../lib/api";
 import { ArenaCanvas } from "../components/ArenaCanvas";
 import { SFUSidebar } from "../components/SFUSidebar";
+import { PeerVideoTile } from "../components/PeerVideoTile";
 import { useSFU } from "@/hooks/useSFU";
+import { usePeerVideos } from "@/hooks/usePeerVideos";
+import { proximityManager } from "../audio/proximityManager";
 
 type SpaceElement = {
   id: string;
@@ -31,8 +34,12 @@ const Arena = () => {
     localStream,
     remoteMedia,
   } = useSFU();
+
+  // Proximity-driven video tracks
+  const videoMap = usePeerVideos();
+
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -52,11 +59,25 @@ const Arena = () => {
   // Refs to avoid stale closures in WS callbacks
   const currentUserRef = useRef<any>(null);
   const usersRef = useRef<Map<string, any>>(new Map());
+  const tileSizeRef = useRef(50); // tracks current tile size for grid→pixel conversion
 
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
   useEffect(() => { usersRef.current = users; }, [users]);
 
-  // Handle absolute strict proximity recalculation & auto-disconnection
+  // ── Inject myPos getter into proximityManager (canvas pixels, not grid tiles) ──
+  useEffect(() => {
+    proximityManager.myPos = () => {
+      const me = currentUserRef.current;
+      const ts = tileSizeRef.current;
+      return me ? { x: me.x * ts, y: me.y * ts } : { x: 0, y: 0 };
+    };
+  }, []);
+
+  // Note: Old auto-disconnect logic removed.
+  // Spatial audio (proximityManager) now handles proximity-based audio/video
+  // fading while the user stays in the call. Users leave only via "Leave Call" button.
+
+  // Detect if someone is nearby (for showing "Join Call" button only)
   useEffect(() => {
     const me = currentUserRef.current;
     if (!me) return;
@@ -69,13 +90,24 @@ const Arena = () => {
     });
 
     setShowInteractionButtons(someOneNearby);
+    // NOTE: No auto-disconnect here! Users stay in call freely.
+  }, [currentUser, users]);
 
-    // If suddenly stranded alone directly during a call (everyone else walked away or you walked away)
-    if (!someOneNearby && inCall) {
-      leaveRoom();
-      setInCall(false);
+  // ── Evaluate proximity immediately when new SFU peers are registered ──
+  // Without this, consumers are never created until someone moves.
+  useEffect(() => {
+    function onPeersRegistered() {
+      const ts = tileSizeRef.current;
+      usersRef.current.forEach((user: any, peerId: string) => {
+        proximityManager.onPositionUpdate(peerId, {
+          x: user.x * ts,
+          y: user.y * ts,
+        });
+      });
     }
-  }, [currentUser, users, inCall, leaveRoom]);
+    window.addEventListener('hive:peersRegistered', onPeersRegistered);
+    return () => window.removeEventListener('hive:peersRegistered', onPeersRegistered);
+  }, []);
 
   // Handle window resize
   useEffect(() => {
@@ -168,10 +200,26 @@ const Arena = () => {
             const updated = { ...me, x: message.payload.x, y: message.payload.y };
             setCurrentUser(updated);
             currentUserRef.current = updated;
+
+            // When WE move, re-evaluate proximity for all known peers
+            usersRef.current.forEach((_user: any, peerId: string) => {
+              const peerData = usersRef.current.get(peerId);
+              if (peerData) {
+                const ts = tileSizeRef.current;
+                proximityManager.onPositionUpdate(peerId, { x: peerData.x * ts, y: peerData.y * ts });
+              }
+            });
           } else {
             const u = usersRef.current.get(message.payload.userId);
             usersRef.current.set(message.payload.userId, { ...u, x: message.payload.x, y: message.payload.y });
             setUsers(new Map(usersRef.current));
+
+            // When THEY move, re-evaluate proximity for that peer
+            const ts = tileSizeRef.current;
+            proximityManager.onPositionUpdate(
+              message.payload.userId,
+              { x: message.payload.x * ts, y: message.payload.y * ts }
+            );
           }
           break;
         }
@@ -186,6 +234,9 @@ const Arena = () => {
         }
 
         case "user-left": {
+          // Clean up proximity state before removing from users map
+          proximityManager.onPeerLeft(message.payload.userId);
+
           setUsers((prev) => {
             const next = new Map(prev);
             next.delete(message.payload.userId);
@@ -239,8 +290,10 @@ const Arena = () => {
     };
   }, [spaceDimensions, windowSize, inCall]);
 
-
-
+  // Keep tileSizeRef in sync for proximity calculations
+  useEffect(() => {
+    tileSizeRef.current = (computedMetrics as any).tileSize ?? 50;
+  }, [computedMetrics]);
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const me = currentUserRef.current;
     if (!me || wsRef.current?.readyState !== WebSocket.OPEN) return;
@@ -281,10 +334,10 @@ const Arena = () => {
 
   const handleJoinCall = (spaceId: string) => {
     setInCall(true);
+    const me = currentUserRef.current;
     if (spaceId.trim()) {
-      joinRoom(spaceId.trim());
+      joinRoom(spaceId.trim(), me?.userId);
     }
-
   };
 
   return (
@@ -366,6 +419,26 @@ const Arena = () => {
           />
         )}
       </div>
+
+      {/* ── Proximity-based video overlays ── */}
+      {videoMap.size > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+            zIndex: 100,
+            pointerEvents: 'none',
+          }}
+        >
+          {[...videoMap.entries()].map(([uid, track]) => (
+            <PeerVideoTile key={uid} userId={uid} track={track} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

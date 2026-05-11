@@ -366,7 +366,41 @@ importers:
         specifier: ^8.40.0
         version: 8.40.0(eslint@9.34.0(jiti@2.6.1))(typescript@5.9.2)
 
+  packages/react:
+    dependencies:
+      '@hivertc/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.14
+      mediasoup-client:
+        specifier: ^3.7.22
+        version: 3.18.8
+      react:
+        specifier: ^19.1.0
+        version: 19.2.5
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.3
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
   packages/redis: {}
+
+  packages/sdk:
+    devDependencies:
+      mediasoup-client:
+        specifier: ^3.7.22
+        version: 3.18.8
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.3
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
 
   packages/typescript-config: {}
 

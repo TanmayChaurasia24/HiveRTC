@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import { Device } from "mediasoup-client";
 import { types } from "mediasoup-client";
+import { proximityManager } from "../audio/proximityManager";
 type Transport = types.Transport;
 type Producer = types.Producer;
 type Consumer = types.Consumer;
@@ -89,48 +90,10 @@ export function useSFU() {
     });
   };
 
-  const consumeRemote = async (
-    socket: Socket,
-    device: Device,
-    recvTransport: Transport,
-    producerId: string
-  ) => {
-    socket.emit(
-      "consume",
-      {
-        rtpCapabilities: device.rtpCapabilities,
-        remoteProducerId: producerId,
-        transportId: recvTransport.id,
-      },
-      async (response: any) => {
-        if (response.error) {
-          console.error("Consume error:", response.error);
-          return;
-        }
+  // Note: consumeRemote was removed. Consumer creation is now handled
+  // entirely by proximityManager based on spatial distance.
 
-        const { id, kind, rtpParameters } = response;
-        const consumer = await recvTransport.consume({
-          id,
-          producerId,
-          kind,
-          rtpParameters,
-        });
-
-        consumersRef.current.set(producerId, consumer);
-
-        const stream = new MediaStream([consumer.track]);
-        setRemoteMedia((prev) => [
-          ...prev,
-          { producerId, kind: kind as "audio" | "video", stream },
-        ]);
-
-        // UNPAUSE immediately
-        socket.emit("consumer-resume", { consumerId: id });
-      }
-    );
-  };
-
-  const joinRoom = useCallback(async (roomId: string) => {
+  const joinRoom = useCallback(async (roomId: string, userId?: string) => {
     setConnectionState("connecting");
     setRemoteMedia([]);
 
@@ -149,7 +112,7 @@ export function useSFU() {
       socketRef.current = socket;
 
       socket.on("connect", () => {
-        socket.emit("join_room", { roomId }, async (response: any) => {
+        socket.emit("join_room", { roomId, userId }, async (response: any) => {
           if (response.error) {
             console.error(response.error);
             setConnectionState("error");
@@ -166,6 +129,9 @@ export function useSFU() {
             deviceRef.current = device;
           }
 
+          // Inject device into proximityManager for consume calls
+          proximityManager.device = device;
+
           // 4. Create Transports
           sendTransportRef.current = await createTransport(
             socket,
@@ -177,6 +143,12 @@ export function useSFU() {
             device,
             "recv"
           );
+
+          // ── Inject dependencies into proximityManager ──
+          proximityManager.sfuSocket = socket;
+          proximityManager.recvTransport = recvTransportRef.current;
+          proximityManager.device = device;
+          proximityManager.resetJoinTime();
 
           // 5. Produce Local Media
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -204,28 +176,32 @@ export function useSFU() {
           setJoined(true);
           setConnectionState("connected");
 
-          // 6. Consume existing network peers
+          // 6. Register existing network peers with proximity manager
+          // (proximityManager will create consumers based on distance)
           if (existingProducers && Array.isArray(existingProducers)) {
             for (const p of existingProducers) {
-              await consumeRemote(
-                socket,
-                device,
-                recvTransportRef.current!,
-                p.producerId
-              );
+              if (p.userId && p.kind) {
+                const existing = proximityManager.peers.get(p.userId);
+                const ids = existing?.producerIds ?? {};
+                ids[p.kind as 'audio' | 'video'] = p.producerId;
+                proximityManager.registerPeer(p.userId, ids);
+              }
             }
+            // Trigger immediate proximity evaluation for newly registered peers
+            window.dispatchEvent(new CustomEvent('hive:peersRegistered'));
           }
         });
       });
 
-      socket.on("new-producer", async ({ producerId }: any) => {
-        if (deviceRef.current && recvTransportRef.current) {
-          await consumeRemote(
-            socket,
-            deviceRef.current,
-            recvTransportRef.current,
-            producerId
-          );
+      socket.on("new-producer", async ({ producerId, socketId: _socketId, userId, kind }: any) => {
+        // Register with proximity manager — it will create consumers based on distance
+        if (userId && kind) {
+          const existing = proximityManager.peers.get(userId);
+          const ids = existing?.producerIds ?? {};
+          ids[kind as 'audio' | 'video'] = producerId;
+          proximityManager.registerPeer(userId, ids);
+          // Trigger immediate proximity evaluation for the new peer
+          window.dispatchEvent(new CustomEvent('hive:peersRegistered'));
         }
       });
 
@@ -235,6 +211,11 @@ export function useSFU() {
         );
         consumersRef.current.get(remoteProducerId)?.close();
         consumersRef.current.delete(remoteProducerId);
+      });
+
+      // Clean up spatial audio when a peer leaves the SFU room
+      socket.on("peerLeft", ({ userId }: any) => {
+        proximityManager.onPeerLeft(userId);
       });
     } catch (err) {
       console.error(err);
@@ -311,5 +292,9 @@ export function useSFU() {
     isCamOn,
     connectionState,
     joined,
+    // Exposed for spatial audio integration in Game.tsx
+    socketRef,
+    deviceRef,
+    recvTransportRef,
   };
 }

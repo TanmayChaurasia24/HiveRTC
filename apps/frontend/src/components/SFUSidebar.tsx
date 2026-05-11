@@ -1,4 +1,4 @@
-import { Users, Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 // Helper components for UI

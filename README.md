@@ -1,135 +1,347 @@
-# Turborepo starter
+<p align="center">
+  <img src="https://img.shields.io/badge/HiveRTC-SDK-6366f1?style=for-the-badge&logo=webrtc&logoColor=white" alt="HiveRTC SDK" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/mediasoup-SFU-e91e63?style=for-the-badge" alt="mediasoup" />
+  <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="MIT License" />
+</p>
 
-This Turborepo starter is maintained by the Turborepo core team.
+# 🐝 HiveRTC — Real-Time Video Conferencing SDK
 
-## Using this example
+> **Build Zoom-like meeting rooms in 10 lines of code.** HiveRTC is a full-stack, SFU-based WebRTC platform that ships as an installable SDK — any developer can `npm install @hivertc/sdk` and add HD video calling, screen sharing, chat, spatial audio, and more to their app without touching WebRTC internals.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
-```
+## ✨ Key Features
 
-## What's inside?
+| Feature | Description | Status |
+|---------|-------------|--------|
+| 🎥 **HD Video/Audio** | SFU-routed media via mediasoup | ✅ |
+| 🖥️ **Screen Sharing** | Native `getDisplayMedia` integration | ✅ |
+| 💬 **In-Meeting Chat** | Real-time message relay via Socket.io | ✅ |
+| 🗣️ **Active Speaker** | Web Audio API volume analysis | ✅ |
+| ✋ **Hand Raise** | Peer-to-peer state signaling | ✅ |
+| 🎙️ **Recording** | Client-side MediaRecorder API capture | ✅ |
+| 📡 **Network Monitor** | WebRTC transport stats for connection health | ✅ |
+| 🎧 **3D Spatial Audio** | HRTF-based positional audio via Web Audio API | ✅ |
 
-This Turborepo includes the following packages/apps:
+---
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 🏗️ Architecture
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+┌──────────────────────────────────────────────────────┐
+│                    HiveRTC Monorepo                   │
+├──────────────┬──────────────┬────────────────────────┤
+│   apps/      │  packages/   │                        │
+│              │              │                        │
+│  sfu_comm    │  sdk         │  @hivertc/sdk          │
+│  (SFU Server)│  (Core SDK)  │  Framework-agnostic    │
+│              │              │  WebRTC + Signaling     │
+│  sfuclient   │  react       │                        │
+│  (Demo App)  │  (Bindings)  │  @hivertc/react        │
+│              │              │  Hooks + Components     │
+│  frontend    │  database    │                        │
+│  (Metaverse) │  redis       │  Shared infra          │
+│  websocket   │  ui          │                        │
+│  httpserver   │              │                        │
+└──────────────┴──────────────┴────────────────────────┘
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### How It Works
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+Browser A                    SFU Server                    Browser B
+─────────                    ──────────                    ─────────
+getUserMedia()          ┌─── mediasoup Router ───┐
+    │                   │                        │
+    ├── Produce ───────►│   Audio/Video routing   │◄─── Produce ──┤
+    │                   │   (No P2P — scales to   │               │
+    ◄── Consume ────────│    100+ participants)   │──── Consume ──►
+    │                   └────────────────────────┘               │
+    │                            │                               │
+    └── Socket.io ───── Chat / Hand Raise / Positions ──────────┘
 ```
 
-### Develop
+---
 
-To develop all apps and packages, run the following command:
+## 📦 Packages
 
-```
-cd my-turborepo
+### `@hivertc/sdk` — Core SDK
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+Framework-agnostic TypeScript SDK. Zero React dependency.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```bash
+npm install @hivertc/sdk socket.io-client mediasoup-client
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+```typescript
+import { HiveRTC } from '@hivertc/sdk';
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+// 1. Create client
+const hive = new HiveRTC({ serverUrl: 'http://localhost:3002' });
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+// 2. Create & join a room
+const room = hive.createRoom('standup-daily');
+await room.join();
 
-### Remote Caching
+// 3. React to events
+room.on('peerJoined', (peer) => {
+  console.log(`${peer.id} joined the meeting`);
+});
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+room.on('trackAdded', ({ peerId, track, kind }) => {
+  // Attach track to a <video> or <audio> element
+  const el = document.createElement(kind);
+  el.srcObject = new MediaStream([track]);
+  el.autoplay = true;
+  document.body.appendChild(el);
+});
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+// 4. Screen share
+await room.startScreenShare();
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+// 5. Send chat
+room.sendChat('Hello everyone!');
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+#### SDK Classes
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+| Class | Purpose |
+|-------|---------|
+| `HiveRTC` | Entry point — creates rooms |
+| `Room` | Full meeting lifecycle (join/leave/produce/consume) |
+| `SignalingClient` | Typed Socket.io protocol layer |
+| `MediaEngine` | mediasoup-client wrapper for WebRTC transport |
+| `SpatialAudioEngine` | HRTF positional audio via Web Audio API |
+| `ActiveSpeakerDetector` | Real-time mic volume analysis |
+| `NetworkMonitor` | WebRTC stats polling for connection health |
+
+---
+
+### `@hivertc/react` — React Bindings
+
+Pre-built hooks and components for React apps.
+
+```bash
+npm install @hivertc/react @hivertc/sdk react react-dom
+```
+
+```tsx
+import { HiveProvider, useHiveRoom, VideoTile, ControlBar } from '@hivertc/react';
+
+function App() {
+  return (
+    <HiveProvider config={{ serverUrl: 'http://localhost:3002' }}>
+      <Meeting />
+    </HiveProvider>
+  );
+}
+
+function Meeting() {
+  const {
+    join, leave, toggleMic, toggleCam,
+    localStream, remoteStreams, isMicOn, isCamOn,
+    chatMessages, sendChat, raisedHands
+  } = useHiveRoom('team-standup');
+
+  return (
+    <div>
+      {/* Video grid */}
+      {localStream && <VideoTile stream={localStream} isLocal />}
+      {remoteStreams.map(s => (
+        <VideoTile key={s.peerId} stream={s.stream} />
+      ))}
+
+      {/* Controls */}
+      <ControlBar
+        isMicOn={isMicOn}
+        isCamOn={isCamOn}
+        onToggleMic={toggleMic}
+        onToggleCam={toggleCam}
+        onLeave={leave}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+## 🎧 3D Spatial Audio Demo
+
+The spatial audio demo is a standout feature — it uses **HRTF (Head-Related Transfer Function)** panning via the Web Audio API to create realistic positional audio.
+
+### What It Does
+
+- Users see a **2D interactive map** with draggable avatars
+- **Audio volume** decreases as avatars move apart
+- **Stereo panning** shifts left/right based on relative position
+- Audio is **always audible** (inverse distance model, never drops to zero)
+
+### How to Demo
+
+```bash
+# Terminal 1: Start SFU server
+cd apps/sfu_comm && pnpm dev
+
+# Terminal 2: Start spatial audio demo
+cd apps/sfuclient && pnpm dev
+```
+
+1. Open **two browser tabs** at `http://localhost:5173`
+2. Join the **same room code** in both
+3. Allow microphone + camera
+4. **Drag your avatar** on the 2D canvas
+5. Listen as audio pans and changes volume based on distance
+
+### Technical Implementation
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+<audio srcObject={remoteStream}>
+         │
+         ▼
+createMediaElementSource()
+         │
+         ▼
+   PannerNode (HRTF)      ◄── updatePeerPosition(x, y)
+         │
+         ▼
+      GainNode
+         │
+         ▼
+   🔊 AudioContext.destination (speakers)
 ```
 
-## Useful Links
+---
 
-Learn more about the power of Turborepo:
+## 🚀 Quick Start (Run Locally)
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+### Prerequisites
+
+- **Node.js** ≥ 18
+- **pnpm** ≥ 9
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/TanmayChaurasia24/HiveRTC.git
+cd HiveRTC
+pnpm install
+```
+
+### 2. Start the SFU Server
+
+```bash
+cd apps/sfu_comm
+pnpm dev
+# → Server running on http://localhost:3002
+```
+
+### 3. Start the Client
+
+```bash
+# Option A: Spatial Audio Demo (recommended for demo)
+cd apps/sfuclient
+pnpm dev
+# → http://localhost:5173
+
+# Option B: Full Metaverse Client
+cd apps/frontend
+pnpm dev
+```
+
+### 4. Test It
+
+Open **two browser tabs**, join the same room, and you'll see each other's video + hear spatial audio.
+
+---
+
+## 📁 Project Structure
+
+```
+HiveRTC/
+├── apps/
+│   ├── sfu_comm/          # mediasoup SFU server (Node.js + Socket.io)
+│   ├── sfuclient/         # Standalone meeting client + spatial audio demo
+│   ├── frontend/          # 3D metaverse client (Canvas-based)
+│   ├── websocket/         # WebSocket server for metaverse state
+│   ├── httpserver/        # HTTP API server
+│   └── webrtc_node/       # WebRTC utility server
+│
+├── packages/
+│   ├── sdk/               # @hivertc/sdk — Core SDK (publishable)
+│   ├── react/             # @hivertc/react — React bindings (publishable)
+│   ├── database/          # Prisma database client
+│   ├── redis/             # Redis client wrapper
+│   ├── ui/                # Shared UI components
+│   ├── eslint-config/     # Shared ESLint config
+│   └── typescript-config/ # Shared TypeScript config
+│
+├── turbo.json             # Turborepo pipeline config
+├── pnpm-workspace.yaml    # pnpm workspace definition
+└── package.json           # Root package.json
+```
+
+---
+
+## 🛠️ Development
+
+### Build Everything
+
+```bash
+pnpm turbo build
+```
+
+### Build Only the SDK
+
+```bash
+cd packages/sdk && pnpm build
+cd packages/react && pnpm build
+```
+
+### Type Check
+
+```bash
+pnpm turbo typecheck
+```
+
+---
+
+## 📡 SFU Server Events (Wire Protocol)
+
+| Event | Direction | Purpose |
+|-------|-----------|---------|
+| `join_room` | Client → Server | Join a room, get RTP capabilities |
+| `createWebRtcTransport` | Client → Server | Create send/recv transport |
+| `transport-connect` | Client → Server | DTLS handshake |
+| `transport-produce` | Client → Server | Start sending media |
+| `consume` | Client → Server | Subscribe to remote producer |
+| `consumer-resume` | Client → Server | Unpause a consumer |
+| `new-producer` | Server → Client | New remote media available |
+| `producer-closed` | Server → Client | Remote producer gone |
+| `chat-message` | Bidirectional | In-meeting chat relay |
+| `hand-raised` | Bidirectional | Hand raise state relay |
+| `position-update` | Bidirectional | Spatial audio position sync |
+
+---
+
+## 🎯 Use Cases
+
+- **Remote Work** — Team standups, 1-on-1s, all-hands meetings
+- **Education** — Virtual classrooms with spatial breakout rooms
+- **Telehealth** — HIPAA-ready video consultations
+- **Gaming** — Proximity voice chat in virtual worlds
+- **Events** — Virtual conferences with spatial networking
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  Built with ❤️ by <a href="https://github.com/TanmayChaurasia24">Tanmay Chaurasia</a>
+</p>

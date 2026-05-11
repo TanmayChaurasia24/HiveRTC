@@ -1,0 +1,38 @@
+{
+  "name": "@hivertc/sdk",
+  "version": "1.0.0",
+  "description": "HiveRTC SDK — Create Zoom-like meeting rooms with SFU-based WebRTC",
+  "author": "Tanmay Chaurasia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TanmayChaurasia24/HiveRTC"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "peerDependencies": {
+    "socket.io-client": "^4.0.0",
+    "mediasoup-client": "^3.0.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1",
+    "mediasoup-client": "^3.7.22",
+    "typescript": "^5.9.0"
+  },
+  "keywords": ["webrtc", "sfu", "mediasoup", "video-conferencing", "sdk", "zoom"],
+  "license": "MIT"
+}
