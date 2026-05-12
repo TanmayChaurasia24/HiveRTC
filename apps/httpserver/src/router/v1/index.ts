@@ -47,7 +47,7 @@ v1Router.get("/avatars", getAllAvatars);
 v1Router.post("/space",authenticateUser, CreateSpace);
 v1Router.delete("/space/:spaceId",authenticateUser, DeleteSpace);
 v1Router.get("/space/all",authenticateUser, GetMyExistingSpaces);
-v1Router.get("/spaces", GetAllSpaces); // public – all spaces for browsing
+v1Router.get("/spaces", GetAllSpaces); 
 
 // arena controllers route...
 v1Router.get("/space/:spaceId", GetSpace);

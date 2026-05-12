@@ -22,7 +22,7 @@ model User {
   failedAttempts Int       @default(0)
   lastFailedAt   DateTime?
   lockedUntil    DateTime?
-  tokenVersion   Int       @default(0) // used to invalidate refresh tokens
+  tokenVersion   Int       @default(0) 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   spaces         Space[]
